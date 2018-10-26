@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Authors>Jeremy Burman</Authors>
+    <Company>W8less Labs</Company>
+    <Description>Provides an AuthService and TokenCacheService implementation for use in Windows client-side applications.</Description>
+    <LangVersion>7.3</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Identity.Client" Version="1.1.4-preview0002" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="4.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\W8lessLabs.GraphAPI\W8lessLabs.GraphAPI.csproj" />
+  </ItemGroup>
+
+</Project>

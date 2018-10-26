@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Authors>Jeremy Burman</Authors>
+    <Company>W8less Labs</Company>
+    <Description>Provides simple APIs for accessing the Microsoft Graph API. Currently, supports retrieving drive item metadata and permissions from OneDrive, as well as basic user profile information.</Description>
+    <LangVersion>7.3</LangVersion>
+    <RepositoryUrl>https://github.com/jburman/W8lessLabs.GraphAPI</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/jburman/W8lessLabs.GraphAPI</PackageProjectUrl>
+    <PackageLicenseUrl>https://github.com/jburman/W8lessLabs.GraphAPI/blob/master/LICENSE</PackageLicenseUrl>
+    <Copyright>Copyright (c) 2018 Jeremy Burman</Copyright>
+    <Version>0.1.0</Version>
+    <PackageReleaseNotes>Initial release - supports read-only access to OneDrive files and their permissions.</PackageReleaseNotes>
+    <FileVersion>0.1.0.0</FileVersion>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+  </PropertyGroup>
+
+</Project>
