@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace W8lessLabs.GraphAPI
 {
-    public class GraphService
+    public class GraphService : IGraphService
     {
         internal const string GraphEndpoint = "https://graph.microsoft.com/v1.0";
         internal const string GraphEndpoint_Me = GraphEndpoint+ "/me";
