@@ -29,7 +29,7 @@ namespace W8lessLabs.GraphAPI
         // keep a small LRU queue of drive items
         private LinkedList<LRUCacheEntry<GetDriveItemsResponse>> _itemsCache;
         private const int CacheLimit = 30;
-        private const int MaxCacheAgeSeconds = 5 * 3;
+        private const int MaxCacheAgeSeconds = 120;
 
         public GraphService(IAuthService authService, IHttpService http)
         {
@@ -37,14 +37,16 @@ namespace W8lessLabs.GraphAPI
             _http = http;
             _itemsCache = new LinkedList<LRUCacheEntry<GetDriveItemsResponse>>();
             _token = null;
+            _tokenExpires = default;
         }
 
         private async Task<(bool tokenSuccess, string token)> _TryGetTokenAsync()
         {
             bool tokenSuccess = false;
-            string token = null;
-            DateTimeOffset tokenExpires = default;
-            if(_token == null || tokenExpires == default || DateTimeOffset.Now > (tokenExpires - TimeSpan.FromSeconds(30)))
+            string token = _token;
+            DateTimeOffset tokenExpires = _tokenExpires;
+
+            if(token == null || tokenExpires == default || DateTimeOffset.Now > (tokenExpires - TimeSpan.FromSeconds(30)))
             {
                 (tokenSuccess, token, tokenExpires) = await _authService.TryGetTokenAsync();
                 if(tokenSuccess)
