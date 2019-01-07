@@ -5,10 +5,10 @@ namespace W8lessLabs.GraphAPI
 {
     public interface IAuthService
     {
-        string GetUserName();
+        Task<string> GetUserNameAsync();
         bool IsLoggedIn();
-        void Login();
-        void Logout();
+        Task LoginAsync();
+        Task LogoutAsync();
         Task<(bool success, string idToken, DateTimeOffset tokenExpires)> TryGetTokenAsync();
     }
 }
