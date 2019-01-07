@@ -36,13 +36,12 @@ namespace W8lessLabs.GraphAPI.Windows
 
         void AfterAccessNotification(TokenCacheNotificationArgs args)
         {
-            if (args.TokenCache.HasStateChanged)
+            if (args.HasStateChanged)
             {
                 lock (_fileLock)
                 {
                     System.IO.File.WriteAllBytes(_cacheFilePath,
                         ProtectedData.Protect(args.TokenCache.Serialize(), null, DataProtectionScope.CurrentUser));
-                    args.TokenCache.HasStateChanged = false;
                 }
             }
         }

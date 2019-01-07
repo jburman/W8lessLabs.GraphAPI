@@ -10,14 +10,17 @@
     <RepositoryUrl>https://github.com/jburman/W8lessLabs.GraphAPI</RepositoryUrl>
     <PackageLicenseUrl>https://github.com/jburman/W8lessLabs.GraphAPI/blob/master/LICENSE</PackageLicenseUrl>
     <Copyright>Copyright (c) 2018 Jeremy Burman</Copyright>
-    <PackageReleaseNotes>Initial release (Note this package relies on pre-release package Microsoft.Identity.Client)</PackageReleaseNotes>
-    <Version>1.0.1</Version>
+    <PackageReleaseNotes>Updated to support latest release of Microsoft.Identity.Client and System.Security.Cryptography.ProtectedData libraries. Updated to support async IAuthService interface.</PackageReleaseNotes>
+    <Version>2.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Identity.Client" Version="1.1.4-preview0002" />
+    <PackageReference Include="Microsoft.Identity.Client" Version="2.6.2" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="4.5.0" />
-    <PackageReference Include="W8lessLabs.GraphAPI" Version="0.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\W8lessLabs.GraphAPI\W8lessLabs.GraphAPI.csproj" />
   </ItemGroup>
 
 </Project>

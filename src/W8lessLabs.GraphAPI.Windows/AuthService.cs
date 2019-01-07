@@ -20,29 +20,29 @@ namespace W8lessLabs.GraphAPI.Windows
                 tokenCacheService.TokenCache);
         }
 
-        private IUser _GetUser() => _appClient.Users.FirstOrDefault();
+        private async Task<IAccount> _GetAccountAsync() => (await _appClient.GetAccountsAsync().ConfigureAwait(false)).FirstOrDefault();
 
-        public string GetUserName() => _appClient.Users.FirstOrDefault()?.Name;
-        public bool IsLoggedIn() => _GetUser() != null;
+        public async Task<string> GetUserNameAsync() => (await _GetAccountAsync().ConfigureAwait(false))?.Username;
+        public bool IsLoggedIn() => _GetAccountAsync() != null;
 
-        public void Login() =>
-            TryGetTokenAsync().GetAwaiter().GetResult();
+        public async Task LoginAsync() =>
+            await TryGetTokenAsync().ConfigureAwait(false);
 
-        public void Logout()
+        public async Task LogoutAsync()
         {
-            var user = _GetUser();
-            if (user != null)
-                _appClient.Remove(user);
+            var account = await _GetAccountAsync().ConfigureAwait(false);
+            if (account != null)
+                await _appClient.RemoveAsync(account).ConfigureAwait(false);
         }
 
         public async Task<(bool success, string idToken, DateTimeOffset tokenExpires)> TryGetTokenAsync()
         {
-            var user = _GetUser();
+            var account = await _GetAccountAsync();
             AuthenticationResult authResult = null;
-            if (user != null)
-                authResult = await _appClient.AcquireTokenSilentAsync(_authConfig.Scopes, user);
+            if (account != null)
+                authResult = await _appClient.AcquireTokenSilentAsync(_authConfig.Scopes, account).ConfigureAwait(false);
             else
-                authResult = await _appClient.AcquireTokenAsync(_authConfig.Scopes);
+                authResult = await _appClient.AcquireTokenAsync(_authConfig.Scopes).ConfigureAwait(false);
 
             if (authResult != null && !string.IsNullOrEmpty(authResult.AccessToken))
                 return (true, authResult.AccessToken, authResult.ExpiresOn);
