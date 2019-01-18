@@ -15,8 +15,5 @@ namespace W8lessLabs.GraphAPI
         public Folder Folder { get; set; }
         public ItemReference ParentReference { get; set; }
         public Shared Shared { get; set; }
-
-        public bool IsFile => File != null;
-        public bool IsFolder => Folder != null;
     }
 }

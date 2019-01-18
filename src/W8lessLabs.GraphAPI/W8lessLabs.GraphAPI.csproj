@@ -11,7 +11,7 @@
     <PackageLicenseUrl>https://github.com/jburman/W8lessLabs.GraphAPI/blob/master/LICENSE</PackageLicenseUrl>
     <Copyright>Copyright (c) 2018 Jeremy Burman</Copyright>
     <Version>0.2.0</Version>
-    <PackageReleaseNotes>Change AuthService to be Async. (breaking change)</PackageReleaseNotes>
+    <PackageReleaseNotes>Change AuthService to be Async and support multiple user accounts. (breaking change)</PackageReleaseNotes>
     <FileVersion>0.2.0.0</FileVersion>
     <AssemblyVersion>0.2.0.0</AssemblyVersion>
   </PropertyGroup>
