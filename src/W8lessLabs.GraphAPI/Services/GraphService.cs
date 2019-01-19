@@ -24,9 +24,10 @@ namespace W8lessLabs.GraphAPI
         private readonly IHttpService _http;
         private readonly IJsonSerializer _json;
 
+        private Dictionary<string, AccountToken> _accountTokens;
         // cache token for a few minutes
-        private string _token;
-        private DateTimeOffset _tokenExpires;
+        //private string _token;
+        //private DateTimeOffset _tokenExpires;
 
         // keep a small LRU queue of drive items
         private LinkedList<LRUCacheEntry<GetDriveItemsResponse>> _itemsCache;
@@ -39,29 +40,36 @@ namespace W8lessLabs.GraphAPI
             _http = http ?? throw new ArgumentNullException(nameof(http));
             _json = json ?? throw new ArgumentNullException(nameof(json));
             _itemsCache = new LinkedList<LRUCacheEntry<GetDriveItemsResponse>>();
-            _token = null;
-            _tokenExpires = default;
+            _accountTokens = new Dictionary<string, AccountToken>();
+            //_token = null;
+            //_tokenExpires = default;
         }
 
         private async Task<(bool tokenSuccess, string token)> _TryGetTokenAsync(GraphAccount account)
         {
             bool tokenSuccess = false;
-            string token = _token;
-            DateTimeOffset tokenExpires = _tokenExpires;
+            string token = null;
+            DateTimeOffset tokenExpires = default;
+
+            if(_accountTokens.TryGetValue(account.AccountId, out AccountToken cachedToken))
+            {
+                tokenSuccess = true;
+                token = cachedToken.Token;
+                tokenExpires = cachedToken.TokenExpires;
+            }
 
             if(token == null || tokenExpires == default || DateTimeOffset.Now > (tokenExpires - TimeSpan.FromSeconds(30)))
             {
-                (tokenSuccess, token, tokenExpires) = await _authService.TryGetTokenAsync(account);
+                GraphAuthResponse auth;
+                (tokenSuccess, auth) = await _authService.TryGetTokenAsync(account);
                 if(tokenSuccess)
                 {
-                    _token = token;
-                    _tokenExpires = tokenExpires;
+                    token = auth.AccessToken;
+                    tokenExpires = auth.TokenExpires;
+                    
+                    // cache the token
+                    _accountTokens[account.AccountId] = new AccountToken(token, tokenExpires);
                 }
-            }
-            else
-            {
-                token = _token;
-                tokenSuccess = true;
             }
 
             return (tokenSuccess, token);
@@ -352,6 +360,18 @@ namespace W8lessLabs.GraphAPI
                     Created = DateTime.Now
                 });
             }
+        }
+
+        private class AccountToken
+        {
+            public AccountToken(string token, DateTimeOffset tokenExpires)
+            {
+                Token = token;
+                TokenExpires = tokenExpires;
+            }
+
+            public string Token;
+            public DateTimeOffset TokenExpires;
         }
 
         private class LRUCacheEntry<T>
