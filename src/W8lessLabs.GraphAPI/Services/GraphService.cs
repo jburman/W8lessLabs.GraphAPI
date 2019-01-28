@@ -20,14 +20,14 @@ namespace W8lessLabs.GraphAPI
         internal const string SkipTokenParam = "$skipToken=";
         internal const string DeltaTokenParam = "token=";
 
+        internal const int MaxSingleFileUploadSize = 1048576 * 4; // 4 MiB
+
         private readonly IAuthService _authService;
         private readonly IHttpService _http;
         private readonly IJsonSerializer _json;
 
+        // Tokens cache
         private Dictionary<string, AccountToken> _accountTokens;
-        // cache token for a few minutes
-        //private string _token;
-        //private DateTimeOffset _tokenExpires;
 
         // keep a small LRU queue of drive items
         private LinkedList<LRUCacheEntry<GetDriveItemsResponse>> _itemsCache;
@@ -41,8 +41,6 @@ namespace W8lessLabs.GraphAPI
             _json = json ?? throw new ArgumentNullException(nameof(json));
             _itemsCache = new LinkedList<LRUCacheEntry<GetDriveItemsResponse>>();
             _accountTokens = new Dictionary<string, AccountToken>();
-            //_token = null;
-            //_tokenExpires = default;
         }
 
         private async Task<(bool tokenSuccess, string token)> _TryGetTokenAsync(GraphAccount account)
@@ -160,13 +158,23 @@ namespace W8lessLabs.GraphAPI
         private HttpServiceHeadersScope _WithAuthHeader(string token) =>
             _http.WithHeaders(("Authorization", "Bearer " + token));
 
+        private T _UnwrapResponse<T>(HttpResponseValue<T> response)
+        {
+            if (response.Success)
+                return response.Value;
+            else
+            {
+                return default;
+            }
+        }
+
         public async Task<GraphUser> GetMeAsync(GraphAccount account)
         {
-            (bool tokenSuccess, string token) = await _TryGetTokenAsync(account);
+            (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
             if (tokenSuccess)
             {
-                using(_WithAuthHeader(token))
-                    return await _http.GetJsonAsync<GraphUser>(GraphEndpoint_Me);
+                using (_WithAuthHeader(token))
+                    return _UnwrapResponse(await _http.GetJsonAsync<GraphUser>(GraphEndpoint_Me).ConfigureAwait(false));
             }
             else
                 return null;
@@ -182,15 +190,21 @@ namespace W8lessLabs.GraphAPI
                 {
                     if (_TryGetRequestUrlWithPaging(request, out string requestUrl))
                     {
-                        (bool tokenSuccess, string token) = await _TryGetTokenAsync(account);
+                        (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
                         if (tokenSuccess)
                         {
                             using (_WithAuthHeader(token))
                             {
-                                var graphResponse = await _http.GetJsonAsync<GraphResponse<DriveItem[]>>(requestUrl);
-                                var response = new GetDriveItemsResponse(graphResponse.Value, _GetSkipToken(graphResponse.NextLink));
-                                _AddToCache(request, response);
-                                return response;
+                                var response = await _http.GetJsonAsync<GraphResponse<DriveItem[]>>(requestUrl).ConfigureAwait(false);
+                                if (response.Success)
+                                {
+                                    var graphResponse = response.Value;
+                                    var driveItems = new GetDriveItemsResponse(graphResponse.Value, _GetSkipToken(graphResponse.NextLink));
+                                    _AddToCache(request, driveItems);
+                                    return driveItems;
+                                }
+                                else
+                                    return default;
                             }
                         }
                     }
@@ -205,14 +219,20 @@ namespace W8lessLabs.GraphAPI
             if (!string.IsNullOrEmpty(deltaOrNextLink))
                 requestUrl = deltaOrNextLink;
 
-            (bool tokenSuccess, string token) = await _TryGetTokenAsync(account);
+            (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
             if (tokenSuccess)
             {
                 using (_WithAuthHeader(token))
                 {
-                    var graphResponse = await _http.GetJsonAsync<GraphResponse<DriveItem[]>>(requestUrl);
-                    var response = new GetDriveItemsDeltaResponse(graphResponse.Value, graphResponse.NextLink, graphResponse.DeltaLink);
-                    return response;
+                    var response = await _http.GetJsonAsync<GraphResponse<DriveItem[]>>(requestUrl).ConfigureAwait(false);
+                    if (response.Success)
+                    {
+                        var graphResponse = response.Value;
+                        var driveItems = new GetDriveItemsDeltaResponse(graphResponse.Value, graphResponse.NextLink, graphResponse.DeltaLink);
+                        return driveItems;
+                    }
+                    else
+                        return default;
                 }
             }
             return null;
@@ -232,13 +252,14 @@ namespace W8lessLabs.GraphAPI
             {
                 requestUrl += "?expand=children(select=id)";
 
-                (bool tokenSuccess, string token) = await _TryGetTokenAsync(account);
+                (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
                 if (tokenSuccess)
                 {
                     using (_WithAuthHeader(token))
                     {
-                        var response = await _http.GetJsonAsync<DriveItem>(requestUrl);
-                        count = response?.IsFolder() == true ? response.Folder.ChildCount : 0;
+                        var response = await _http.GetJsonAsync<DriveItem>(requestUrl).ConfigureAwait(false);
+                        if(response.Success)
+                            count = response.Value?.IsFolder() == true ? response.Value.Folder.ChildCount : 0;
                     }
                 }
             }
@@ -249,13 +270,13 @@ namespace W8lessLabs.GraphAPI
         {
             if (_TryGetRequestUrlForPermissions(path, out string requestUrl))
             {
-                (bool tokenSuccess, string token) = await _TryGetTokenAsync(account);
+                (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
                 if (tokenSuccess)
                 {
                     using (_WithAuthHeader(token))
                     {
-                        var response = await _http.GetJsonAsync<GraphResponse<Permission[]>>(requestUrl);
-                        return response?.Value;
+                        return _UnwrapResponse(
+                            await _http.GetJsonAsync<GraphResponse<Permission[]>>(requestUrl).ConfigureAwait(false))?.Value;
                     }
                 }
             }
@@ -266,13 +287,13 @@ namespace W8lessLabs.GraphAPI
         {
             if (_TryGetRequestUrlForPermissionsById(driveItemId, out string requestUrl))
             {
-                (bool tokenSuccess, string token) = await _TryGetTokenAsync(account);
+                (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
                 if (tokenSuccess)
                 {
                     using (_WithAuthHeader(token))
                     {
-                        var response = await _http.GetJsonAsync<GraphResponse<Permission[]>>(requestUrl);
-                        return response?.Value;
+                        return _UnwrapResponse(
+                            await _http.GetJsonAsync<GraphResponse<Permission[]>>(requestUrl).ConfigureAwait(false))?.Value;
                     }
                 }
             }
@@ -283,7 +304,7 @@ namespace W8lessLabs.GraphAPI
         {
             if (_TryGetRequestUrlForChildren(path, out string requestUrl))
             {
-                (bool tokenSuccess, string token) = await _TryGetTokenAsync(account);
+                (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
                 if (tokenSuccess)
                 {
                     using (_WithAuthHeader(token))
@@ -293,29 +314,71 @@ namespace W8lessLabs.GraphAPI
                             Name = newFolderName,
                             Folder = new Folder()
                         };
-                        var folderResponse = await _http.PostJsonAsync<DriveItem>(requestUrl, _json.Serialize(createFolder));
-                        return folderResponse;
+                        _UnwrapResponse(await _http.PostJsonAsync<DriveItem>(requestUrl, _json.Serialize(createFolder)).ConfigureAwait(false));
                     }
                 }
             }
             return null;
         }
 
-        public async Task<DriveItem> UploadFileAsync(GraphAccount account, string path, Stream content)
+        private async Task<DriveItem> _UploadSmallFileAsync(GraphAccount account, FileUploadRequest request, Stream fileContent)
         {
-            if (_TryGetRequestUrlForContent(path, out string requestUrl))
+            string requestUrl = GraphEndpoint_DriveRoot + ":" + Uri.EscapeUriString(request.GetFullFilePath()) + ":/content";
+
+            (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
+            if (tokenSuccess)
             {
-                (bool tokenSuccess, string token) = await _TryGetTokenAsync(account);
-                if (tokenSuccess)
+                using (_WithAuthHeader(token))
+                    return _UnwrapResponse(await _http.PutBinaryAsync<DriveItem>(requestUrl, fileContent).ConfigureAwait(false));
+            }
+            return default;
+        }
+
+        public async Task<DriveItem> _UploadLargeFileAsync(GraphAccount account, FileUploadRequest request, Stream fileContent)
+        {
+            string createSessionUrl = GraphEndpoint_DriveRoot + ":" + Uri.EscapeUriString(request.GetFullFilePath()) + ":/createUploadSession";
+            (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
+            if (tokenSuccess)
+            {
+                using (_WithAuthHeader(token))
                 {
-                    using (_WithAuthHeader(token))
+                    string replace = request.Overwrite ? "replace" : "fail";
+                    string fileName = _json.Serialize(request.FileName);
+                    //string description = _json.Serialize(request.Description); // Only supported on ODrive Personal
+                    //string fileSystemInfo = @"{ ""odata.type"": ""microsoft.graph.fileSystemInfo"" }"; // TODO - support adding FSInfo
+
+                    string createSessionRequest = $@"{{
+    ""item"": {{
+        ""@microsoft.graph.conflictBehavior"": ""{replace}"",
+        ""name"": {fileName}
+    }}
+}}";
+                    var createSessionResponse = _UnwrapResponse(await _http.PostJsonAsync<CreateUploadSessionResponse>(createSessionUrl, createSessionRequest).ConfigureAwait(false));
+                    if (createSessionResponse != null)
                     {
-                        var folderResponse = await _http.PutBinaryAsync<DriveItem>(requestUrl, content);
-                        return folderResponse;
+                        using (var session = new FileUploadSession(request,
+                            createSessionResponse.UploadUrl,
+                            createSessionResponse.ExpirationDateTime,
+                            _http,
+                            _json))
+                        {
+                            await session.UploadAsync(fileContent).ConfigureAwait(false);
+                        }
                     }
                 }
             }
-            return null;
+            return default;
+        }
+
+        public async Task<DriveItem> UploadFileAsync(GraphAccount account, FileUploadRequest request, Stream fileContent)
+        {
+            if (string.IsNullOrEmpty(request.FilePath))
+                throw new ArgumentException("FilePath", "A File Path is required.");
+
+            if (string.IsNullOrEmpty(request.FileName))
+                throw new ArgumentException("FileName", "A File Name is required.");
+
+            return await _UploadLargeFileAsync(account, request, fileContent).ConfigureAwait(false);
         }
 
         private bool _TryGetFromCache(string cacheKey, out GetDriveItemsResponse cachedResponse)
@@ -380,6 +443,12 @@ namespace W8lessLabs.GraphAPI
             public DateTime LastUsed { get; set; }
             public DateTime Created { get; set; }
             public T Value { get; set; }
+        }
+
+        private class CreateUploadSessionResponse
+        {
+            public string UploadUrl { get; set; }
+            public DateTimeOffset ExpirationDateTime { get; set; }
         }
     }
 }

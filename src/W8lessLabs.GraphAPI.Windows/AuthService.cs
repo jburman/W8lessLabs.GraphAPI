@@ -37,9 +37,6 @@ namespace W8lessLabs.GraphAPI.Windows
                     azureTenantId: a.HomeAccountId?.TenantId)).ToArray();
         }
 
-        public async Task<bool> IsLoggedInAsync(GraphAccount account) =>
-            (await _appClient.GetAccountAsync(account.AccountId).ConfigureAwait(false)) != null;
-
         public async Task<GraphAuthResponse> LoginAsync() => await LoginAsync(null).ConfigureAwait(false);
 
         public async Task<GraphAuthResponse> LoginAsync(GraphAccount account)
