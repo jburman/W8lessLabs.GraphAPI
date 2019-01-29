@@ -362,7 +362,7 @@ namespace W8lessLabs.GraphAPI
                             _http,
                             _json))
                         {
-                            await session.UploadAsync(fileContent).ConfigureAwait(false);
+                            await session.UploadAsync(fileContent, request.FileSize).ConfigureAwait(false);
                         }
                     }
                 }

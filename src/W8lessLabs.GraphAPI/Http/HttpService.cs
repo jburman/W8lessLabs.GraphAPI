@@ -128,14 +128,19 @@ namespace W8lessLabs.GraphAPI
             return default;
         }
 
-        public async Task<HttpResponseValue<T>> PutBinaryAsync<T>(string requestUri, Stream content, params (string name, string value)[] contentHeaders)
+        public async Task<HttpResponseValue<T>> PutBinaryAsync<T>(string requestUri, Stream content, params (string name, string value)[] contentHeaders) =>
+            await _PutBinaryAsync<T>(requestUri, new StreamContent(content), contentHeaders).ConfigureAwait(false);
+
+        public async Task<HttpResponseValue<T>> PutBinaryAsync<T>(string requestUri, byte[] content, params (string name, string value)[] contentHeaders) =>
+            await _PutBinaryAsync<T>(requestUri, new ByteArrayContent(content), contentHeaders).ConfigureAwait(false);
+
+        private async Task<HttpResponseValue<T>> _PutBinaryAsync<T>(string requestUri, HttpContent httpContent, (string name, string value)[] contentHeaders)
         {
             if (!string.IsNullOrEmpty(requestUri))
             {
                 try
                 {
-                    var httpContent = new StreamContent(content);
-                    if(contentHeaders != null)
+                    if (contentHeaders != null)
                     {
                         foreach ((string name, string value) in contentHeaders)
                             httpContent.Headers.TryAddWithoutValidation(name, value);
