@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -39,7 +40,48 @@ namespace W8lessLabs.GraphAPI
                     return new HttpResponseValue<T>(false, default, httpEx.Message);
                 }
             }
-            return default;
+            return new HttpResponseValue<T>(false, default);
+        }
+
+        public async Task<HttpResponseValue<Stream>> GetStreamAsync(string requestUri, params (string name, string value)[] contentHeaders)
+        {
+            if (!string.IsNullOrEmpty(requestUri))
+            {
+                try
+                {
+                    HttpServiceHeadersScope headerScope = null;
+
+                    try
+                    {
+                        if(contentHeaders?.Length > 0)
+                        {
+                            headerScope = WithHeaders(contentHeaders);
+                        }
+
+                        var response = await _http.GetAsync(requestUri).ConfigureAwait(false);
+                        if ((response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.PartialContent) 
+                            && response.Content is StreamContent)
+                            return new HttpResponseValue<Stream>(true, await response.Content.ReadAsStreamAsync().ConfigureAwait(false));
+                        if (response.StatusCode == HttpStatusCode.Redirect)
+                        {
+                            string location = response.Headers.Location.ToString(); // only follow one redirect here...
+                            response = await _http.GetAsync(requestUri).ConfigureAwait(false);
+                            if (response.IsSuccessStatusCode)
+                                return new HttpResponseValue<Stream>(true, await response.Content.ReadAsStreamAsync().ConfigureAwait(false));
+                        }
+                    }
+                    finally
+                    {
+                        if (headerScope != null)
+                            headerScope.Dispose();
+                    }
+                }
+                catch (HttpRequestException httpEx)
+                {
+                    return new HttpResponseValue<Stream>(false, default, httpEx.Message);
+                }
+            }
+            return new HttpResponseValue<Stream>(false, default);
         }
 
         public async Task<HttpResponseValue<string>> DeleteAsync(string requestUri)
@@ -59,7 +101,7 @@ namespace W8lessLabs.GraphAPI
                     return new HttpResponseValue<string>(false, default, httpEx.Message);
                 }
             }
-            return default;
+            return new HttpResponseValue<string>(false, default);
         }
 
         public async Task<HttpResponseValue<string>> PostJsonAsync(string requestUri, string jsonBody)
@@ -81,7 +123,7 @@ namespace W8lessLabs.GraphAPI
                     return new HttpResponseValue<string>(false, default, httpEx.Message);
                 }
             }
-            return default;
+            return new HttpResponseValue<string>(false, default);
         }
 
         public async Task<HttpResponseValue<T>> PostJsonAsync<T>(string requestUri, string jsonBody)
@@ -103,7 +145,7 @@ namespace W8lessLabs.GraphAPI
                     return new HttpResponseValue<T>(false, default, httpEx.Message);
                 }
             }
-            return default;
+            return new HttpResponseValue<T>(false, default);
         }
 
         public async Task<HttpResponseValue<T>> PutJsonAsync<T>(string requestUri, string jsonBody)
@@ -125,7 +167,7 @@ namespace W8lessLabs.GraphAPI
                     return new HttpResponseValue<T>(false, default, httpEx.Message);
                 }
             }
-            return default;
+            return new HttpResponseValue<T>(false, default);
         }
 
         public async Task<HttpResponseValue<T>> PutBinaryAsync<T>(string requestUri, Stream content, params (string name, string value)[] contentHeaders) =>
@@ -159,7 +201,7 @@ namespace W8lessLabs.GraphAPI
                     return new HttpResponseValue<T>(false, default, httpEx.Message);
                 }
             }
-            return default;
+            return new HttpResponseValue<T>(false, default);
         }
     }
 }

@@ -164,6 +164,8 @@ namespace W8lessLabs.GraphAPI
                 return response.Value;
             else
             {
+                // TODO logging
+                Console.WriteLine(response.ErrorMessage);
                 return default;
             }
         }
@@ -379,6 +381,24 @@ namespace W8lessLabs.GraphAPI
                 throw new ArgumentException("FileName", "A File Name is required.");
 
             return await _UploadLargeFileAsync(account, request, fileContent).ConfigureAwait(false);
+        }
+
+        public async Task<Stream> DownloadFileAsync(GraphAccount account, string path, (int start, int end) range = default)
+        {
+            string requestUrl = GraphEndpoint_DriveRoot + ":" + Uri.EscapeUriString(path) + ":/content";
+            (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
+            if (tokenSuccess)
+            {
+                using (_WithAuthHeader(token))
+                {
+                    (string header, string value)[] contentHeaders = default;
+                    if (range.end > 0 && range.end > range.start)
+                        contentHeaders = new[] { ("Range", string.Format("bytes={0}-{1}", range.start, range.end)) };
+
+                    return _UnwrapResponse(await _http.GetStreamAsync(requestUrl, contentHeaders).ConfigureAwait(false));
+                }
+            }
+            return Stream.Null;
         }
 
         private bool _TryGetFromCache(string cacheKey, out GetDriveItemsResponse cachedResponse)

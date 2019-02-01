@@ -26,10 +26,10 @@ namespace W8lessLabs.GraphAPI
                 {
                     _previousValues.Add((name, existingValue));
                     defaultHeaders.Remove(name);
-                    defaultHeaders.Add(name, value);
+                    defaultHeaders.TryAddWithoutValidation(name, value);
                 }
                 else
-                    defaultHeaders.Add(name, value);
+                    defaultHeaders.TryAddWithoutValidation(name, value);
 
                 _addedValues.Add((name, value));
             }

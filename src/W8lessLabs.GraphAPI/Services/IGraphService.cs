@@ -17,5 +17,7 @@ namespace W8lessLabs.GraphAPI
 
         Task<DriveItem> CreateFolderAsync(GraphAccount account, string path, string newFolderName);
         Task<DriveItem> UploadFileAsync(GraphAccount account, FileUploadRequest request, Stream fileContent);
+
+        Task<Stream> DownloadFileAsync(GraphAccount account, string path, (int start, int end) range = default);
     }
 }
