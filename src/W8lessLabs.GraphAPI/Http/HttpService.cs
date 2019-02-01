@@ -148,6 +148,34 @@ namespace W8lessLabs.GraphAPI
             return new HttpResponseValue<T>(false, default);
         }
 
+        public async Task<HttpResponseValue<T>> PatchJsonAsync<T>(string requestUri, string jsonBody)
+        {
+            if (!string.IsNullOrEmpty(requestUri))
+            {
+                try
+                {
+                    var method = new HttpMethod("PATCH");
+                    HttpRequestMessage request = new HttpRequestMessage(method, requestUri)
+                    {
+                        Content = new StringContent(jsonBody, Encoding.UTF8, "application/json")
+                    };
+
+                    HttpResponseMessage response = await _http.SendAsync(request).ConfigureAwait(false);
+                    if (response.IsSuccessStatusCode)
+                        return new HttpResponseValue<T>(
+                            true,
+                            _json.Deserialize<T>(await response.Content.ReadAsStringAsync().ConfigureAwait(false)));
+                    else
+                        return new HttpResponseValue<T>(false, default, await response.Content.ReadAsStringAsync().ConfigureAwait(false));
+                }
+                catch (HttpRequestException httpEx)
+                {
+                    return new HttpResponseValue<T>(false, default, httpEx.Message);
+                }
+            }
+            return new HttpResponseValue<T>(false, default);
+        }
+
         public async Task<HttpResponseValue<T>> PutJsonAsync<T>(string requestUri, string jsonBody)
         {
             if (!string.IsNullOrEmpty(requestUri))

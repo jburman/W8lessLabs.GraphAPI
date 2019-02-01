@@ -11,6 +11,7 @@ namespace W8lessLabs.GraphAPI
         Task<HttpResponseValue<Stream>> GetStreamAsync(string requestUri, params (string name, string value)[] contentHeaders);
         Task<HttpResponseValue<string>> DeleteAsync(string requestUri);
         Task<HttpResponseValue<T>> PostJsonAsync<T>(string requestUri, string jsonBody);
+        Task<HttpResponseValue<T>> PatchJsonAsync<T>(string requestUri, string jsonBody);
         Task<HttpResponseValue<string>> PostJsonAsync(string requestUri, string jsonBody);
         Task<HttpResponseValue<T>> PutJsonAsync<T>(string requestUri, string jsonBody);
         Task<HttpResponseValue<T>> PutBinaryAsync<T>(string requestUri, Stream content, params (string name, string value)[] contentHeaders);

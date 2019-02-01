@@ -420,6 +420,18 @@ namespace W8lessLabs.GraphAPI
             return Stream.Null;
         }
 
+        public async Task<DriveItem> UpdateItemByIdAsync(GraphAccount account, string driveItemId, Dictionary<string, object> updateValues)
+        {
+            if (_TryGetRequestUrlForItemId(driveItemId, out string requestUrl))
+            {
+                (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
+                if (tokenSuccess)
+                    using (_WithAuthHeader(token))
+                        return _UnwrapResponse(await _http.PatchJsonAsync<DriveItem>(requestUrl, _json.Serialize(updateValues)).ConfigureAwait(false));
+            }
+            return null;
+        }
+
         public async Task<bool> DeleteItemAsync(GraphAccount account, string driveItemId)
         {
             if (_TryGetRequestUrlForItemId(driveItemId, out string requestUrl))

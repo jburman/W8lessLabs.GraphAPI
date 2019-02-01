@@ -22,6 +22,7 @@ namespace W8lessLabs.GraphAPI
 
         Task<Stream> DownloadFileAsync(GraphAccount account, string path, (int start, int end) range = default);
 
+        Task<DriveItem> UpdateItemByIdAsync(GraphAccount account, string driveItemId, Dictionary<string, object> updateValues);
         Task<bool> DeleteItemAsync(GraphAccount account, string itemId);
     }
 }
