@@ -73,39 +73,48 @@ namespace W8lessLabs.GraphAPI
             return (tokenSuccess, token);
         }
 
-        private bool _TryGetRequestUrlForFolder(string path, out string requestUrl)
+        private string _GetRequestUrlForPath(string path)
         {
             if (string.IsNullOrEmpty(path) || path == "/")
-                requestUrl = GraphEndpoint_DriveRoot;
+                return GraphEndpoint_DriveRoot;
             else
-                requestUrl = GraphEndpoint_DriveRoot + ":" + Uri.EscapeUriString(path);
-            return true;
+                return GraphEndpoint_DriveRoot + ":" + Uri.EscapeUriString(path);
         }
 
-        private bool _TryGetRequestUrlForChildren(string path, out string requestUrl)
+        private string _GetRequestUrlForChildren(string path)
         {
             if (string.IsNullOrEmpty(path) || path == "/")
-                requestUrl = GraphEndpoint_DriveRootChildren;
+                return GraphEndpoint_DriveRootChildren;
             else
-                requestUrl = GraphEndpoint_DriveRoot + ":" + Uri.EscapeUriString(path) + ":/children";
-            return true;
+                return GraphEndpoint_DriveRoot + ":" + Uri.EscapeUriString(path) + ":/children";
         }
 
-        private bool _TryGetRequestUrlForContent(string path, out string requestUrl)
+        private string _GetRequestUrlForContent(string path)
         {
             if (string.IsNullOrEmpty(path) || path == "/")
-                requestUrl = GraphEndpoint_DriveRootChildren;
+                return GraphEndpoint_DriveRootChildren;
             else
-                requestUrl = GraphEndpoint_DriveRoot + ":" + Uri.EscapeUriString(path) + ":/content";
-            return true;
+                return GraphEndpoint_DriveRoot + ":" + Uri.EscapeUriString(path) + ":/content";
         }
 
-        private bool _TryGetRequestUrlForPermissions(string path, out string requestUrl)
+        private string _GetRequestUrlForPermissions(string path)
         {
             if (string.IsNullOrEmpty(path) || path == "/")
-                requestUrl = GraphEndpoint_DriveRoot + "/permissions";
+                return GraphEndpoint_DriveRoot + "/permissions";
             else
-                requestUrl = GraphEndpoint_DriveRoot + ":" + Uri.EscapeUriString(path) + ":/permissions";
+                return GraphEndpoint_DriveRoot + ":" + Uri.EscapeUriString(path) + ":/permissions";
+        }
+
+        private bool _TryGetRequestUrlForItemId(string driveItemId, out string requestUrl)
+        {
+            if (string.IsNullOrEmpty(driveItemId))
+            {
+                requestUrl = null;
+                return false;
+            }
+            else
+                requestUrl = GraphEndpoint_DriveItems + "/" + Uri.EscapeUriString(driveItemId);
+                
             return true;
         }
 
@@ -121,21 +130,16 @@ namespace W8lessLabs.GraphAPI
             return true;
         }
 
-        private bool _TryGetRequestUrlWithPaging(GetDriveItemsRequest request, out string requestUrl)
+        private string _GetRequestUrlWithPaging(GetDriveItemsRequest request)
         {
-            if (_TryGetRequestUrlForChildren(request?.Path, out requestUrl))
-            {
-                int pageSize = Math.Max(request.PageSize, GetDriveItemsRequest.MinimumPageSize);
-                requestUrl += "?$top=" + pageSize;
+            string requestUrl = _GetRequestUrlForChildren(request?.Path);
+            int pageSize = Math.Max(request.PageSize, GetDriveItemsRequest.MinimumPageSize);
+            requestUrl += "?$top=" + pageSize;
 
-                if (!string.IsNullOrEmpty(request.SkipToken))
-                    requestUrl += "&$skipToken=" + WebUtility.UrlEncode(request.SkipToken);
+            if (!string.IsNullOrEmpty(request.SkipToken))
+                requestUrl += "&$skipToken=" + WebUtility.UrlEncode(request.SkipToken);
 
-                return true;
-            }
-            else
-                requestUrl = null;
-            return false;
+            return requestUrl;
         }
 
         private string _GetSkipToken(string nextLink)
@@ -174,12 +178,35 @@ namespace W8lessLabs.GraphAPI
         {
             (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
             if (tokenSuccess)
-            {
                 using (_WithAuthHeader(token))
                     return _UnwrapResponse(await _http.GetJsonAsync<GraphUser>(GraphEndpoint_Me).ConfigureAwait(false));
-            }
             else
                 return null;
+        }
+
+        public async Task<DriveItem> GetDriveItemAsync(GraphAccount account, string itemPath)
+        {
+            if(!string.IsNullOrEmpty(itemPath))
+            {
+                string requestUrl = _GetRequestUrlForPath(itemPath);
+                (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
+                if (tokenSuccess)
+                    using (_WithAuthHeader(token))
+                        return _UnwrapResponse(await _http.GetJsonAsync<DriveItem>(requestUrl).ConfigureAwait(false));
+            }
+            return null;
+        }
+
+        public async Task<DriveItem> GetDriveItemByIdAsync(GraphAccount account, string driveItemId)
+        {
+            if (_TryGetRequestUrlForItemId(driveItemId, out string requestUrl))
+            {
+                (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
+                if (tokenSuccess)
+                    using (_WithAuthHeader(token))
+                        return _UnwrapResponse(await _http.GetJsonAsync<DriveItem>(requestUrl).ConfigureAwait(false));
+            }
+            return null;
         }
 
         public async Task<GetDriveItemsResponse> GetDriveItemsAsync(GraphAccount account, GetDriveItemsRequest request)
@@ -190,24 +217,22 @@ namespace W8lessLabs.GraphAPI
                     return cachedResponse;
                 else
                 {
-                    if (_TryGetRequestUrlWithPaging(request, out string requestUrl))
+                    string requestUrl = _GetRequestUrlWithPaging(request);
+                    (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
+                    if (tokenSuccess)
                     {
-                        (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
-                        if (tokenSuccess)
+                        using (_WithAuthHeader(token))
                         {
-                            using (_WithAuthHeader(token))
+                            var response = await _http.GetJsonAsync<GraphResponse<DriveItem[]>>(requestUrl).ConfigureAwait(false);
+                            if (response.Success)
                             {
-                                var response = await _http.GetJsonAsync<GraphResponse<DriveItem[]>>(requestUrl).ConfigureAwait(false);
-                                if (response.Success)
-                                {
-                                    var graphResponse = response.Value;
-                                    var driveItems = new GetDriveItemsResponse(graphResponse.Value, _GetSkipToken(graphResponse.NextLink));
-                                    _AddToCache(request, driveItems);
-                                    return driveItems;
-                                }
-                                else
-                                    return default;
+                                var graphResponse = response.Value;
+                                var driveItems = new GetDriveItemsResponse(graphResponse.Value, _GetSkipToken(graphResponse.NextLink));
+                                _AddToCache(request, driveItems);
+                                return driveItems;
                             }
+                            else
+                                return default;
                         }
                     }
                 }
@@ -250,19 +275,17 @@ namespace W8lessLabs.GraphAPI
         public async Task<int> GetChildItemsCountAsync(GraphAccount account, string path)
         {
             int count = 0;
-            if (_TryGetRequestUrlForFolder(path, out string requestUrl))
-            {
-                requestUrl += "?expand=children(select=id)";
+            string requestUrl = _GetRequestUrlForPath(path);
+            requestUrl += "?expand=children(select=id)";
 
-                (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
-                if (tokenSuccess)
+            (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
+            if (tokenSuccess)
+            {
+                using (_WithAuthHeader(token))
                 {
-                    using (_WithAuthHeader(token))
-                    {
-                        var response = await _http.GetJsonAsync<DriveItem>(requestUrl).ConfigureAwait(false);
-                        if(response.Success)
-                            count = response.Value?.IsFolder() == true ? response.Value.Folder.ChildCount : 0;
-                    }
+                    var response = await _http.GetJsonAsync<DriveItem>(requestUrl).ConfigureAwait(false);
+                    if(response.Success)
+                        count = response.Value?.IsFolder() == true ? response.Value.Folder.ChildCount : 0;
                 }
             }
             return count;
@@ -270,16 +293,14 @@ namespace W8lessLabs.GraphAPI
 
         public async Task<IEnumerable<Permission>> GetPermissionsAsync(GraphAccount account, string path)
         {
-            if (_TryGetRequestUrlForPermissions(path, out string requestUrl))
+            string requestUrl = _GetRequestUrlForPermissions(path);
+            (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
+            if (tokenSuccess)
             {
-                (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
-                if (tokenSuccess)
+                using (_WithAuthHeader(token))
                 {
-                    using (_WithAuthHeader(token))
-                    {
-                        return _UnwrapResponse(
-                            await _http.GetJsonAsync<GraphResponse<Permission[]>>(requestUrl).ConfigureAwait(false))?.Value;
-                    }
+                    return _UnwrapResponse(
+                        await _http.GetJsonAsync<GraphResponse<Permission[]>>(requestUrl).ConfigureAwait(false))?.Value;
                 }
             }
             return Array.Empty<Permission>();
@@ -304,20 +325,18 @@ namespace W8lessLabs.GraphAPI
 
         public async Task<DriveItem> CreateFolderAsync(GraphAccount account, string path, string newFolderName)
         {
-            if (_TryGetRequestUrlForChildren(path, out string requestUrl))
+            string requestUrl = _GetRequestUrlForChildren(path);
+            (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
+            if (tokenSuccess)
             {
-                (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
-                if (tokenSuccess)
+                using (_WithAuthHeader(token))
                 {
-                    using (_WithAuthHeader(token))
+                    var createFolder = new
                     {
-                        var createFolder = new
-                        {
-                            Name = newFolderName,
-                            Folder = new Folder()
-                        };
-                        _UnwrapResponse(await _http.PostJsonAsync<DriveItem>(requestUrl, _json.Serialize(createFolder)).ConfigureAwait(false));
-                    }
+                        Name = newFolderName,
+                        Folder = new Folder()
+                    };
+                    _UnwrapResponse(await _http.PostJsonAsync<DriveItem>(requestUrl, _json.Serialize(createFolder)).ConfigureAwait(false));
                 }
             }
             return null;
@@ -399,6 +418,23 @@ namespace W8lessLabs.GraphAPI
                 }
             }
             return Stream.Null;
+        }
+
+        public async Task<bool> DeleteItemAsync(GraphAccount account, string driveItemId)
+        {
+            if (_TryGetRequestUrlForItemId(driveItemId, out string requestUrl))
+            {
+                (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
+                if (tokenSuccess)
+                {
+                    using (_WithAuthHeader(token))
+                    {
+                        var response = await _http.DeleteAsync(requestUrl).ConfigureAwait(false);
+                        return response.Success;
+                    }
+                }
+            }
+            return false;
         }
 
         private bool _TryGetFromCache(string cacheKey, out GetDriveItemsResponse cachedResponse)

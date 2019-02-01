@@ -7,6 +7,8 @@ namespace W8lessLabs.GraphAPI
     public interface IGraphService
     {
         Task<GraphUser> GetMeAsync(GraphAccount account);
+        Task<DriveItem> GetDriveItemAsync(GraphAccount account, string itemPath);
+        Task<DriveItem> GetDriveItemByIdAsync(GraphAccount account, string driveItemId);
         Task<GetDriveItemsResponse> GetDriveItemsAsync(GraphAccount account, GetDriveItemsRequest request);
         Task<GetDriveItemsDeltaResponse> GetDriveItemsDeltaAsync(GraphAccount account, string deltaOrNextLink = null);
         string GetDeltaLinkFromToken(string deltaToken);
@@ -19,5 +21,7 @@ namespace W8lessLabs.GraphAPI
         Task<DriveItem> UploadFileAsync(GraphAccount account, FileUploadRequest request, Stream fileContent);
 
         Task<Stream> DownloadFileAsync(GraphAccount account, string path, (int start, int end) range = default);
+
+        Task<bool> DeleteItemAsync(GraphAccount account, string itemId);
     }
 }
