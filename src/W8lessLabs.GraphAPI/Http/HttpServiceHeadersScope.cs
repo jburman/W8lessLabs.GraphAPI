@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using W8lessLabs.GraphAPI.Logging;
 
 namespace W8lessLabs.GraphAPI
 {
@@ -13,7 +14,13 @@ namespace W8lessLabs.GraphAPI
         List<(string name, IEnumerable<string> value)> _previousValues;
         List<(string name, string value)> _addedValues;
 
-        public HttpServiceHeadersScope(HttpClient http, (string name, string value)[] headers)
+        public HttpServiceHeadersScope(HttpClient http, (string name, string value)[] headers) :
+            this(http, headers, NullLogger.Instance)
+        {
+
+        }
+
+        internal HttpServiceHeadersScope(HttpClient http, (string name, string value)[] headers, ILogger logger)
         {
             _http = http;
             _previousValues = new List<(string, IEnumerable<string>)>();
@@ -22,6 +29,11 @@ namespace W8lessLabs.GraphAPI
             var defaultHeaders = _http.DefaultRequestHeaders;
             foreach ((string name, string value) in headers)
             {
+                if("Authorization".Equals(name, StringComparison.OrdinalIgnoreCase))
+                    logger.Trace("Adding Scoped Header: {0} = {1}", name, "<value omitted>");
+                else
+                    logger.Trace("Adding Scoped Header: {0} = {1}", name, value);
+
                 if (defaultHeaders.TryGetValues(name, out IEnumerable<string> existingValue))
                 {
                     _previousValues.Add((name, existingValue));

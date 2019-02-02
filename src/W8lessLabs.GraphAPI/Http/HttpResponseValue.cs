@@ -2,18 +2,20 @@
 {
     public class HttpResponseValue<T>
     {
-        public HttpResponseValue(bool success, T value)
-            : this(success, value, null)
+        public HttpResponseValue(string requestUri, bool success, T value)
+            : this(requestUri, success, value, null)
         {
         }
 
-        public HttpResponseValue(bool success, T value, string errorMessage)
+        public HttpResponseValue(string requestUri, bool success, T value, string errorMessage)
         {
+            RequestUri = requestUri;
             Success = success;
             Value = value;
             ErrorMessage = errorMessage;
         }
 
+        public string RequestUri;
         public bool Success;
         public T Value;
         public string ErrorMessage;

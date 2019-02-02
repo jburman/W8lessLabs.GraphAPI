@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using W8lessLabs.GraphAPI.Logging;
 
 namespace W8lessLabs.GraphAPI
 {
@@ -25,6 +26,7 @@ namespace W8lessLabs.GraphAPI
         private readonly IAuthService _authService;
         private readonly IHttpService _http;
         private readonly IJsonSerializer _json;
+        private readonly ILogger _logger;
 
         // Tokens cache
         private Dictionary<string, AccountToken> _accountTokens;
@@ -34,13 +36,18 @@ namespace W8lessLabs.GraphAPI
         private const int CacheLimit = 30;
         private const int MaxCacheAgeSeconds = 120;
 
-        public GraphService(IAuthService authService, IHttpService http, IJsonSerializer json)
+        public GraphService(IAuthService authService, IHttpService http, IJsonSerializer json, ILoggerProvider loggerProvider = null)
         {
             _authService = authService ?? throw new ArgumentNullException(nameof(authService));
             _http = http ?? throw new ArgumentNullException(nameof(http));
             _json = json ?? throw new ArgumentNullException(nameof(json));
             _itemsCache = new LinkedList<LRUCacheEntry<GetDriveItemsResponse>>();
             _accountTokens = new Dictionary<string, AccountToken>();
+
+            if (loggerProvider is null)
+                _logger = NullLogger.Instance;
+            else
+                _logger = loggerProvider.GetLogger();
         }
 
         private async Task<(bool tokenSuccess, string token)> _TryGetTokenAsync(GraphAccount account)
@@ -168,8 +175,7 @@ namespace W8lessLabs.GraphAPI
                 return response.Value;
             else
             {
-                // TODO logging
-                Console.WriteLine(response.ErrorMessage);
+                _logger.Error("Request Failed - Request URI: {0} Response Message: {1}", response.RequestUri, response.ErrorMessage);
                 return default;
             }
         }
