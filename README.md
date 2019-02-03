@@ -10,6 +10,9 @@ Provides simple APIs for accessing the Microsoft Graph API
 * ~~File download~~ DONE
 * ~~File download with range~~ DONE
 * ~~Update item (i.e. support Rename)~~ DONE
+* Create Permissions
+* Create Share Link
 * ~~Delete item~~ DONE
+* ~~Delete permission~~ DONE
 * Error handling / logging integrations
 * Tests

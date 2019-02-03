@@ -278,6 +278,24 @@ namespace W8lessLabs.GraphAPI
             return GraphEndpoint_Delta + "?" + DeltaTokenParam + Uri.EscapeDataString(deltaToken);
         }
 
+        public async Task<Permission> CreateSharingLinkAsync(GraphAccount account, string driveItemId, SharingLinkTypeOptions type, SharingLinkScopeOptions scope)
+        {
+            if (_TryGetRequestUrlForItemId(driveItemId, out string requestUrl))
+            {
+                requestUrl += "/createLink";
+                (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
+                if (tokenSuccess)
+                {
+                    using (_WithAuthHeader(token))
+                        return _UnwrapResponse(
+                            // POST /me/drive/items/{itemId}/createLink
+                            await _http.PostJsonAsync<Permission>(requestUrl,
+                                _json.Serialize(new CreateSharingLinkRequest(type, scope))).ConfigureAwait(false));
+                }
+            }
+            return null;
+        }
+
         public async Task<int> GetChildItemsCountAsync(GraphAccount account, string path)
         {
             int count = 0;
@@ -433,12 +451,13 @@ namespace W8lessLabs.GraphAPI
                 (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
                 if (tokenSuccess)
                     using (_WithAuthHeader(token))
+                        // PATCH /me/drive/items/{item-id}
                         return _UnwrapResponse(await _http.PatchJsonAsync<DriveItem>(requestUrl, _json.Serialize(updateValues)).ConfigureAwait(false));
             }
             return null;
         }
 
-        public async Task<bool> DeleteItemAsync(GraphAccount account, string driveItemId)
+        public async Task<bool> DeleteItemByIdAsync(GraphAccount account, string driveItemId)
         {
             if (_TryGetRequestUrlForItemId(driveItemId, out string requestUrl))
             {
@@ -447,8 +466,32 @@ namespace W8lessLabs.GraphAPI
                 {
                     using (_WithAuthHeader(token))
                     {
+                        // DELETE /me/drive/items/{item-id}
                         var response = await _http.DeleteAsync(requestUrl).ConfigureAwait(false);
                         return response.Success;
+                    }
+                }
+            }
+            return false;
+        }
+
+        public async Task<bool> DeletePermissionByIdAsync(GraphAccount account, string driveItemId, string permissionId)
+        {
+            if (_TryGetRequestUrlForItemId(driveItemId, out string requestUrl))
+            {
+                if (!string.IsNullOrEmpty(permissionId))
+                {
+                    requestUrl += "/permissions/" + Uri.EscapeUriString(permissionId);
+
+                    (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
+                    if (tokenSuccess)
+                    {
+                        using (_WithAuthHeader(token))
+                        {
+                            // DELETE /me/drive/items/{item-id}/permissions/{perm-id}
+                            var response = await _http.DeleteAsync(requestUrl).ConfigureAwait(false);
+                            return response.Success;
+                        }
                     }
                 }
             }
