@@ -7,7 +7,7 @@
         {
         }
 
-        public HttpResponseValue(string requestUri, bool success, T value, string errorMessage)
+        public HttpResponseValue(string requestUri, bool success, T value, ErrorMessage errorMessage)
         {
             RequestUri = requestUri;
             Success = success;
@@ -18,6 +18,6 @@
         public string RequestUri;
         public bool Success;
         public T Value;
-        public string ErrorMessage;
+        public ErrorMessage ErrorMessage;
     }
 }

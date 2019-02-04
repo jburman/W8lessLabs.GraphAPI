@@ -4,11 +4,11 @@
     {
         public CreateSharingLinkRequest(SharingLinkTypeOptions type, SharingLinkScopeOptions scope)
         {
-            Type = type.ToString().ToLower();
-            Scope = scope.ToString().ToLower();
+            Type = type.AsString();
+            Scope = scope.AsString();
         }
 
-        public string Type { get; set; }
-        public string Scope { get; set; }
+        public string Type { get; private set; }
+        public string Scope { get; private set; }
     }
 }

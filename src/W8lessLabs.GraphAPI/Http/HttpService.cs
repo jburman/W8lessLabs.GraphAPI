@@ -29,6 +29,29 @@ namespace W8lessLabs.GraphAPI
                 _logger = loggerProvider.GetLogger();
         }
 
+        private HttpResponseValue<T> _CreateErrorResponse<T>(string requestUri, Exception ex) =>
+            new HttpResponseValue<T>(requestUri, false, default, new ErrorMessage() { Message = ex.Message });
+
+        private HttpResponseValue<T> _CreateErrorResponse<T>(string requestUri, string message)
+        {
+            ErrorMessage errorMessage = null;
+            if (message?.StartsWith("{") == true)
+            {
+                try
+                {
+                    errorMessage = _json.Deserialize<ErrorResponse>(message)?.Error;
+                } catch { }
+            }
+
+            if(errorMessage is null)
+                errorMessage = new ErrorMessage()
+                {
+                    Message = message
+                };
+
+            return new HttpResponseValue<T>(requestUri, false, default, errorMessage);
+        }
+
         public HttpServiceHeadersScope WithHeaders(params (string name, string value)[] headers) =>
             new HttpServiceHeadersScope(_http, headers, _logger);
 
@@ -46,7 +69,7 @@ namespace W8lessLabs.GraphAPI
                 }
                 catch (HttpRequestException httpEx)
                 {
-                    return new HttpResponseValue<T>(requestUri, false, default, httpEx.Message);
+                    return _CreateErrorResponse<T>(requestUri, httpEx);
                 }
             }
             return new HttpResponseValue<T>(null, false, default);
@@ -89,7 +112,7 @@ namespace W8lessLabs.GraphAPI
                 }
                 catch (HttpRequestException httpEx)
                 {
-                    return new HttpResponseValue<Stream>(requestUri, false, default, httpEx.Message);
+                    return _CreateErrorResponse<Stream>(requestUri, httpEx);
                 }
             }
             return new HttpResponseValue<Stream>(null, false, default);
@@ -110,7 +133,7 @@ namespace W8lessLabs.GraphAPI
                 }
                 catch (HttpRequestException httpEx)
                 {
-                    return new HttpResponseValue<string>(requestUri, false, default, httpEx.Message);
+                    return _CreateErrorResponse<string>(requestUri, httpEx);
                 }
             }
             return new HttpResponseValue<string>(null, false, default);
@@ -131,11 +154,11 @@ namespace W8lessLabs.GraphAPI
                             true,
                             await response.Content.ReadAsStringAsync().ConfigureAwait(false));
                     else
-                        return new HttpResponseValue<string>(requestUri, false, default, await response.Content.ReadAsStringAsync().ConfigureAwait(false));
+                        return _CreateErrorResponse<string>(requestUri, await response.Content.ReadAsStringAsync().ConfigureAwait(false));
                 }
                 catch (HttpRequestException httpEx)
                 {
-                    return new HttpResponseValue<string>(requestUri, false, default, httpEx.Message);
+                    return _CreateErrorResponse<string>(requestUri, httpEx);
                 }
             }
             return new HttpResponseValue<string>(null, false, default);
@@ -156,11 +179,11 @@ namespace W8lessLabs.GraphAPI
                             true, 
                             _json.Deserialize<T>(await response.Content.ReadAsStringAsync().ConfigureAwait(false)));
                     else
-                        return new HttpResponseValue<T>(requestUri, false, default, await response.Content.ReadAsStringAsync().ConfigureAwait(false));
+                        return _CreateErrorResponse<T>(requestUri, await response.Content.ReadAsStringAsync().ConfigureAwait(false));
                 }
                 catch (HttpRequestException httpEx)
                 {
-                    return new HttpResponseValue<T>(requestUri, false, default, httpEx.Message);
+                    return _CreateErrorResponse<T>(requestUri, httpEx);
                 }
             }
             return new HttpResponseValue<T>(null, false, default);
@@ -187,11 +210,11 @@ namespace W8lessLabs.GraphAPI
                             true,
                             _json.Deserialize<T>(await response.Content.ReadAsStringAsync().ConfigureAwait(false)));
                     else
-                        return new HttpResponseValue<T>(requestUri, false, default, await response.Content.ReadAsStringAsync().ConfigureAwait(false));
+                        return _CreateErrorResponse<T>(requestUri, await response.Content.ReadAsStringAsync().ConfigureAwait(false));
                 }
                 catch (HttpRequestException httpEx)
                 {
-                    return new HttpResponseValue<T>(requestUri, false, default, httpEx.Message);
+                    return _CreateErrorResponse<T>(requestUri, httpEx);
                 }
             }
             return new HttpResponseValue<T>(null, false, default);
@@ -212,11 +235,11 @@ namespace W8lessLabs.GraphAPI
                             true, 
                             _json.Deserialize<T>(await response.Content.ReadAsStringAsync().ConfigureAwait(false)));
                     else
-                        return new HttpResponseValue<T>(requestUri, false, default, await response.Content.ReadAsStringAsync().ConfigureAwait(false));
+                        return _CreateErrorResponse<T>(requestUri, await response.Content.ReadAsStringAsync().ConfigureAwait(false));
                 }
                 catch (HttpRequestException httpEx)
                 {
-                    return new HttpResponseValue<T>(requestUri, false, default, httpEx.Message);
+                    return _CreateErrorResponse<T>(requestUri, httpEx);
                 }
             }
             return new HttpResponseValue<T>(null, false, default);
@@ -253,11 +276,11 @@ namespace W8lessLabs.GraphAPI
                             true,
                             _json.Deserialize<T>(await response.Content.ReadAsStringAsync().ConfigureAwait(false)));
                     else
-                        return new HttpResponseValue<T>(requestUri, false, default, await response.Content.ReadAsStringAsync().ConfigureAwait(false));
+                        return _CreateErrorResponse<T>(requestUri, await response.Content.ReadAsStringAsync().ConfigureAwait(false));
                 }
                 catch (HttpRequestException httpEx)
                 {
-                    return new HttpResponseValue<T>(requestUri, false, default, httpEx.Message);
+                    return _CreateErrorResponse<T>(requestUri, httpEx);
                 }
             }
             return new HttpResponseValue<T>(null, false, default);

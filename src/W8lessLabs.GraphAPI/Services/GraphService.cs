@@ -175,7 +175,10 @@ namespace W8lessLabs.GraphAPI
                 return response.Value;
             else
             {
-                _logger.Error("Request Failed - Request URI: {0} Response Message: {1}", response.RequestUri, response.ErrorMessage);
+                _logger.Error("Request Failed - Request URI: {0} - Error Code: {1} - Response Message: {2}", 
+                    response.RequestUri,
+                    response.ErrorMessage?.Code,
+                    response.ErrorMessage?.Message);
                 return default;
             }
         }
@@ -291,6 +294,57 @@ namespace W8lessLabs.GraphAPI
                             // POST /me/drive/items/{itemId}/createLink
                             await _http.PostJsonAsync<Permission>(requestUrl,
                                 _json.Serialize(new CreateSharingLinkRequest(type, scope))).ConfigureAwait(false));
+                }
+            }
+            return null;
+        }
+
+        public async Task<PermissionUpdateResponse> AddPermissionAsync(GraphAccount account, string driveItemId, SharingInvitationRequest request)
+        {
+            if (_TryGetRequestUrlForItemId(driveItemId, out string requestUrl))
+            {
+                requestUrl += "/invite";
+                (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
+                if (tokenSuccess)
+                {
+                    using (_WithAuthHeader(token))
+                    {
+                        // POST /me/drive/items/{item-id}/invite
+                        var response = await _http.PostJsonAsync<SharingInvitationResponse>(requestUrl,
+                                _json.Serialize(request)).ConfigureAwait(false);
+
+                        // send through Unwrap as well for logging...
+                        var value = _UnwrapResponse(response);
+
+                        return new PermissionUpdateResponse(response.Success, value?.Value.FirstOrDefault(), response.ErrorMessage);
+                    }
+                }
+            }
+            return null;
+        }
+
+        public async Task<PermissionUpdateResponse> UpdatePermissionAsync(GraphAccount account, string driveItemId, string permissionId, params PermissionRoleOptions[] roles)
+        {
+            if (_TryGetRequestUrlForItemId(driveItemId, out string requestUrl))
+            {
+                requestUrl += "/permissions/" + Uri.EscapeUriString(permissionId);
+                (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
+                if (tokenSuccess)
+                {
+                    using (_WithAuthHeader(token))
+                    {
+                        // PATCH /me/drive/items/{item-id}/permissions/{perm-id}
+                        var response = await _http.PatchJsonAsync<Permission>(requestUrl,
+                                _json.Serialize(new
+                                {
+                                    roles = roles.Select(r => r.AsString()).ToArray()
+                                })).ConfigureAwait(false);
+
+                        // send through Unwrap as well for logging...
+                        var value = _UnwrapResponse(response);
+
+                        return new PermissionUpdateResponse(response.Success, response.Value, response.ErrorMessage);
+                    }
                 }
             }
             return null;

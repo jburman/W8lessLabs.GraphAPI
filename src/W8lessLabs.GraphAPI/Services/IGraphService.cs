@@ -14,6 +14,8 @@ namespace W8lessLabs.GraphAPI
         string GetDeltaLinkFromToken(string deltaToken);
 
         Task<Permission> CreateSharingLinkAsync(GraphAccount account, string driveItemId, SharingLinkTypeOptions type, SharingLinkScopeOptions scope);
+        Task<PermissionUpdateResponse> AddPermissionAsync(GraphAccount account, string driveItemId, SharingInvitationRequest request);
+        Task<PermissionUpdateResponse> UpdatePermissionAsync(GraphAccount account, string driveItemId, string permissionId, params PermissionRoleOptions[] roles);
         Task<int> GetChildItemsCountAsync(GraphAccount account, string path);
         Task<IEnumerable<Permission>> GetPermissionsAsync(GraphAccount account, string path);
         Task<IEnumerable<Permission>> GetPermissionsByIdAsync(GraphAccount account, string itemId);
