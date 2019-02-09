@@ -281,6 +281,57 @@ namespace W8lessLabs.GraphAPI
             return GraphEndpoint_Delta + "?" + DeltaTokenParam + Uri.EscapeDataString(deltaToken);
         }
 
+        public async Task<int> GetChildItemsCountAsync(GraphAccount account, string path)
+        {
+            int count = 0;
+            string requestUrl = _GetRequestUrlForPath(path);
+            requestUrl += "?expand=children(select=id)";
+
+            (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
+            if (tokenSuccess)
+            {
+                using (_WithAuthHeader(token))
+                {
+                    var response = await _http.GetJsonAsync<DriveItem>(requestUrl).ConfigureAwait(false);
+                    if(response.Success)
+                        count = response.Value?.IsFolder() == true ? response.Value.Folder.ChildCount : 0;
+                }
+            }
+            return count;
+        }
+
+        public async Task<IEnumerable<Permission>> GetPermissionsAsync(GraphAccount account, string path)
+        {
+            string requestUrl = _GetRequestUrlForPermissions(path);
+            (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
+            if (tokenSuccess)
+            {
+                using (_WithAuthHeader(token))
+                {
+                    return _UnwrapResponse(
+                        await _http.GetJsonAsync<GraphResponse<Permission[]>>(requestUrl).ConfigureAwait(false))?.Value;
+                }
+            }
+            return Array.Empty<Permission>();
+        }
+
+        public async Task<IEnumerable<Permission>> GetPermissionsByIdAsync(GraphAccount account, string driveItemId)
+        {
+            if (_TryGetRequestUrlForPermissionsById(driveItemId, out string requestUrl))
+            {
+                (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
+                if (tokenSuccess)
+                {
+                    using (_WithAuthHeader(token))
+                    {
+                        return _UnwrapResponse(
+                            await _http.GetJsonAsync<GraphResponse<Permission[]>>(requestUrl).ConfigureAwait(false))?.Value;
+                    }
+                }
+            }
+            return Array.Empty<Permission>();
+        }
+
         public async Task<Permission> CreateSharingLinkAsync(GraphAccount account, string driveItemId, SharingLinkTypeOptions type, SharingLinkScopeOptions scope)
         {
             if (_TryGetRequestUrlForItemId(driveItemId, out string requestUrl))
@@ -348,57 +399,6 @@ namespace W8lessLabs.GraphAPI
                 }
             }
             return null;
-        }
-
-        public async Task<int> GetChildItemsCountAsync(GraphAccount account, string path)
-        {
-            int count = 0;
-            string requestUrl = _GetRequestUrlForPath(path);
-            requestUrl += "?expand=children(select=id)";
-
-            (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
-            if (tokenSuccess)
-            {
-                using (_WithAuthHeader(token))
-                {
-                    var response = await _http.GetJsonAsync<DriveItem>(requestUrl).ConfigureAwait(false);
-                    if(response.Success)
-                        count = response.Value?.IsFolder() == true ? response.Value.Folder.ChildCount : 0;
-                }
-            }
-            return count;
-        }
-
-        public async Task<IEnumerable<Permission>> GetPermissionsAsync(GraphAccount account, string path)
-        {
-            string requestUrl = _GetRequestUrlForPermissions(path);
-            (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
-            if (tokenSuccess)
-            {
-                using (_WithAuthHeader(token))
-                {
-                    return _UnwrapResponse(
-                        await _http.GetJsonAsync<GraphResponse<Permission[]>>(requestUrl).ConfigureAwait(false))?.Value;
-                }
-            }
-            return Array.Empty<Permission>();
-        }
-
-        public async Task<IEnumerable<Permission>> GetPermissionsByIdAsync(GraphAccount account, string driveItemId)
-        {
-            if (_TryGetRequestUrlForPermissionsById(driveItemId, out string requestUrl))
-            {
-                (bool tokenSuccess, string token) = await _TryGetTokenAsync(account).ConfigureAwait(false);
-                if (tokenSuccess)
-                {
-                    using (_WithAuthHeader(token))
-                    {
-                        return _UnwrapResponse(
-                            await _http.GetJsonAsync<GraphResponse<Permission[]>>(requestUrl).ConfigureAwait(false))?.Value;
-                    }
-                }
-            }
-            return Array.Empty<Permission>();
         }
 
         public async Task<DriveItem> CreateFolderAsync(GraphAccount account, string path, string newFolderName)
