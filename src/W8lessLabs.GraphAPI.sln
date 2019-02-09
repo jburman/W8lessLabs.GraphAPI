@@ -7,6 +7,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "W8lessLabs.GraphAPI", "W8le
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "W8lessLabs.GraphAPI.Windows", "W8lessLabs.GraphAPI.Windows\W8lessLabs.GraphAPI.Windows.csproj", "{DDD915C0-9833-409D-A405-5643ED00F537}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution", "Solution", "{4DB01BD2-CF0F-40C2-A8F5-EEE0F00857FF}"
+	ProjectSection(SolutionItems) = preProject
+		..\README.md = ..\README.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
