@@ -5,10 +5,12 @@ using System.Threading.Tasks;
 
 namespace W8lessLabs.GraphAPI.Windows
 {
-    public class AuthService : IAuthService
+    public class AuthService : IAuthService, IAuthTokenProvider
     {
         private AuthConfig _authConfig;
         private PublicClientApplication _appClient;
+
+        private const string _Authority = "https://login.microsoftonline.com/common";
 
         public AuthService(AuthConfig authConfig)
         {
@@ -16,41 +18,42 @@ namespace W8lessLabs.GraphAPI.Windows
 
             var tokenCacheService = new TokenCacheService("W8lessLabsGraphAPI");
             _appClient = new PublicClientApplication(authConfig.ClientId,
-                "https://login.microsoftonline.com/common",
+                _Authority,
                 tokenCacheService.TokenCache);
         }
 
-        private async Task<IAccount> _GetMicrosoftAccountAsync(GraphAccount account) =>
-            await _appClient.GetAccountAsync(account.AccountId).ConfigureAwait(false);
+        private async Task<IAccount> _GetMicrosoftAccountAsync(string accountId = null) =>
+            (string.IsNullOrEmpty(accountId)) ?
+                // if account not supplied then try to return first available account
+                (await _appClient.GetAccountsAsync().ConfigureAwait(false)).FirstOrDefault() :
+                // otherwise lookup the supplied account
+                await _appClient.GetAccountAsync(accountId).ConfigureAwait(false);
 
-        public async Task<GraphAccount[]> GetUserAccountsAsync()
+        public async Task<GraphAccount[]> GetAvailableAccountsAsync()
         {
             var accounts = await _appClient.GetAccountsAsync().ConfigureAwait(false);
             if (accounts is null)
                 return Array.Empty<GraphAccount>();
             else
-                return accounts.Select(a => new GraphAccount(
-                    accountName: a.Username,
-                    identityProvider: a.Environment,
-                    accountId: a.HomeAccountId?.Identifier,
-                    azureObjectId: a.HomeAccountId?.ObjectId,
-                    azureTenantId: a.HomeAccountId?.TenantId)).ToArray();
+                return accounts.Select(a => a.ToGraphAccount()).ToArray();
         }
 
-        public async Task<GraphAuthResponse> LoginAsync() => await LoginAsync(null).ConfigureAwait(false);
+        private async Task<GraphAccount> _FindAccount(string accountId) =>
+            (await _GetMicrosoftAccountAsync(accountId).ConfigureAwait(false))
+                .ToGraphAccount();
 
-        public async Task<GraphAuthResponse> LoginAsync(GraphAccount account)
+        public async Task<(GraphTokenResult result, GraphAccount account)> LoginAsync() => await LoginAsync(null).ConfigureAwait(false);
+
+        public async Task<(GraphTokenResult result, GraphAccount account)> LoginAsync(string accountId)
         {
-            (bool success, GraphAuthResponse response) = await TryGetTokenAsync(account).ConfigureAwait(false);
-            if (success)
-                return response;
-            else
-                return default;
+            var result = await GetTokenAsync(accountId, true);
+            var account = await _FindAccount(accountId).ConfigureAwait(false);
+            return (result, account);
         }
 
-        public async Task<bool> LogoutAsync(GraphAccount account)
+        public async Task<bool> LogoutAsync()
         {
-            var msAccount = await _GetMicrosoftAccountAsync(account);
+            var msAccount = await _GetMicrosoftAccountAsync();
             if (msAccount is null)
                 return false;
             else
@@ -60,30 +63,38 @@ namespace W8lessLabs.GraphAPI.Windows
             }
         }
 
-        public async Task<(bool success, GraphAuthResponse authResponse)> TryGetTokenAsync(GraphAccount account = null)
+        public async Task<bool> LogoutAsync(string accountId)
         {
-            IAccount msAccount = null;
+            var msAccount = await _GetMicrosoftAccountAsync(accountId);
+            if (msAccount is null)
+                return false;
+            else
+            {
+                await _appClient.RemoveAsync(msAccount).ConfigureAwait(false);
+                return true;
+            }
+        }
 
-            if(account != null)
-                msAccount = await _GetMicrosoftAccountAsync(account);
+        public async Task<GraphTokenResult> GetTokenAsync(string accountId = null, bool forceRefresh = false)
+        {
+            IAccount msAccount = await _GetMicrosoftAccountAsync(accountId);
             
-            AuthenticationResult authResult = null;
+            AuthenticationResult authResult;
             if (msAccount != null)
-                authResult = await _appClient.AcquireTokenSilentAsync(_authConfig.Scopes, msAccount).ConfigureAwait(false);
+                authResult = await _appClient.AcquireTokenSilentAsync(_authConfig.Scopes, msAccount, _Authority, forceRefresh).ConfigureAwait(false);
             else
                 authResult = await _appClient.AcquireTokenAsync(_authConfig.Scopes).ConfigureAwait(false); // force an interactive login
 
             if (authResult != null && !string.IsNullOrEmpty(authResult.AccessToken))
-                return (true, new GraphAuthResponse(
-                    authResult.AccessToken, 
-                    authResult.ExpiresOn, 
-                    new GraphAccount(authResult.Account?.HomeAccountId?.Identifier,
-                        authResult.Account?.Username,
-                        authResult.Account?.Environment,
-                        authResult.Account?.HomeAccountId?.ObjectId,
-                        authResult.Account?.HomeAccountId?.TenantId)));
-            else
-                return (false, default);
+            {
+                IAccount authAccount = authResult.Account;
+
+                return new GraphTokenResult(true,
+                    authResult.AccessToken,
+                    authResult.ExpiresOn);
+            }
+
+            return GraphTokenResult.Failed;
         }
     }
 }
