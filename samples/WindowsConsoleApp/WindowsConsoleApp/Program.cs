@@ -1,13 +1,17 @@
 ﻿using System;
 using System.Net.Http;
+using System.Threading.Tasks;
 using W8lessLabs.GraphAPI;
+using W8lessLabs.GraphAPI.Logging;
 using W8lessLabs.GraphAPI.Windows;
 
 namespace WindowsConsoleApp
 {
     class Program
     {
-        static void Main(string[] args)
+#pragma warning disable UseAsyncSuffix
+        private static async Task Main(string[] args)
+#pragma warning restore UseAsyncSuffix
         {
             // register an App at https://apps.dev.microsoft.com/ to get a ClientID (add the Native Application platform)
             const string ClientId = "... client ID here ..."; 
@@ -23,14 +27,27 @@ namespace WindowsConsoleApp
                 // Provide an Http Handler
                 using (var http = new HttpClient())
                 {
-                    var authService = new AuthService(authConfig);
-                    var httpService = new HttpService(http, new JsonSerializer());
-                    var graphService = new GraphService(authService, httpService);
+                    var loggerProvider = new ConsoleLoggerProvider(); // Can also implement your own ILoggerProvider
+                    var json = new JsonSerializer();
+                    var authService = new AuthService(authConfig, loggerProvider);
+                    var httpService = new HttpService(http, json);
+                    var graphService = new GraphService(authService, httpService, json, loggerProvider);
 
-                    // Get the User's basic profile info - this will pop a login dialog in Windows if you are not logged in already.
+                    // Login the user and retrieve their account info.
+                    // The accountId needs to be passed to Graph API calls.
+                    // This call will pop a login dialog in Windows if you are not logged in already.
                     // The AuthService will cache the token locally so you should not be prompted when running a second time.
                     // The token is encrypted and stored in a file named "W8lessLabsGraphAPI.msalcache.bin" next to the application exe.
-                    var user = graphService.GetMeAsync().GetAwaiter().GetResult();
+                    (GraphTokenResult result, GraphAccount account) = await authService.LoginAsync();
+
+                    if (!result.Success)
+                    {
+                        Console.WriteLine("Failed to login and acquire token!");
+                        return;
+                    }
+
+                    // Get the User's basic profile info.
+                    var user = await graphService.GetMeAsync(account.AccountId);
 
                     if (user != null)
                         Console.WriteLine(user.DisplayName);
@@ -45,8 +62,7 @@ namespace WindowsConsoleApp
                     {
                         Console.WriteLine("Fetching page of results...");
 
-                        response = graphService.GetDriveItemsAsync(new GetDriveItemsRequest("/", 5, skipToken))
-                            .GetAwaiter().GetResult();
+                        response = await graphService.GetDriveItemsAsync(account.AccountId, new GetDriveItemsRequest("/", 5, skipToken));
 
                         foreach (var item in response.DriveItems)
                             Console.WriteLine($"    {item.ParentReference.Path}/{item.Name}");
@@ -64,7 +80,7 @@ namespace WindowsConsoleApp
 
                     do
                     {
-                        deltaResponse = graphService.GetDriveItemsDeltaAsync().GetAwaiter().GetResult();
+                        deltaResponse = await graphService.GetDriveItemsDeltaAsync(account.AccountId);
 
                         Console.WriteLine("Retrieved delta page. # items: " + deltaResponse.DriveItems.Count);
                         // Uncomment this line to loop through all results...
@@ -85,10 +101,10 @@ namespace WindowsConsoleApp
                     // Example 3: get permissions for a drive item
 
                     // By path/name
-                    //var permissions = await graphService.GetPermissionsAsync("/Folder"); // or /Folder/SubFolder/file.foo
+                    //var permissions = await graphService.GetPermissionsAsync(account.AccountId, "/Folder"); // or /Folder/SubFolder/file.foo
 
                     // or by DriveItemId
-                    //var permissions = await graphService.GetPermissionsByIdAsync("123456");
+                    //var permissions = await graphService.GetPermissionsByIdAsync(account.AccountId, "123456");
                 }
             }
             catch(Exception ex)

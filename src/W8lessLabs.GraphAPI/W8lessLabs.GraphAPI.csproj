@@ -10,10 +10,10 @@
     <PackageProjectUrl>https://github.com/jburman/W8lessLabs.GraphAPI</PackageProjectUrl>
     <PackageLicenseUrl>https://github.com/jburman/W8lessLabs.GraphAPI/blob/master/LICENSE</PackageLicenseUrl>
     <Copyright>Copyright (c) 2019 Jeremy Burman</Copyright>
-    <Version>0.4.0</Version>
-    <PackageReleaseNotes>Simplified auth interface in core GraphAPI package by replacing AuthService with a simpler AuthTokenProvider interface. GraphAccount no longer needs to be passed to GraphService (just an accountId). Goal is to make it easier to add cross-platform AuthTokenProviders to plugin (for example, one for Blazor with JS interop, one for desktop with Identity.Client  etc.)</PackageReleaseNotes>
+    <Version>0.4.1</Version>
+    <PackageReleaseNotes>Replace DebugLogger with ConsoleLogger</PackageReleaseNotes>
     <FileVersion>0.4.0.0</FileVersion>
-    <AssemblyVersion>0.4.0.0</AssemblyVersion>
+    <AssemblyVersion>0.4.1.0</AssemblyVersion>
   </PropertyGroup>
 
 </Project>

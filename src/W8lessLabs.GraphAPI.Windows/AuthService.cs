@@ -2,6 +2,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using W8lessLabs.GraphAPI.Logging;
 
 namespace W8lessLabs.GraphAPI.Windows
 {
@@ -9,12 +10,15 @@ namespace W8lessLabs.GraphAPI.Windows
     {
         private AuthConfig _authConfig;
         private PublicClientApplication _appClient;
+        private ILogger _logger;
 
         private const string _Authority = "https://login.microsoftonline.com/common";
 
-        public AuthService(AuthConfig authConfig)
+        public AuthService(AuthConfig authConfig, ILoggerProvider loggerProvider = null)
         {
             _authConfig = authConfig ?? throw new ArgumentNullException(nameof(authConfig));
+
+            _logger = loggerProvider?.GetLogger();
 
             var tokenCacheService = new TokenCacheService("W8lessLabsGraphAPI");
             _appClient = new PublicClientApplication(authConfig.ClientId,
@@ -31,6 +35,8 @@ namespace W8lessLabs.GraphAPI.Windows
 
         public async Task<GraphAccount[]> GetAvailableAccountsAsync()
         {
+            _logger?.Trace("GetAvailableAccountsAsync called");
+
             var accounts = await _appClient.GetAccountsAsync().ConfigureAwait(false);
             if (accounts is null)
                 return Array.Empty<GraphAccount>();
@@ -46,6 +52,8 @@ namespace W8lessLabs.GraphAPI.Windows
 
         public async Task<(GraphTokenResult result, GraphAccount account)> LoginAsync(string accountId)
         {
+            _logger?.Trace("LoginAsync called for accountId: [{0}]", accountId);
+
             var result = await GetTokenAsync(accountId, true);
             var account = await _FindAccount(accountId).ConfigureAwait(false);
             return (result, account);
@@ -53,6 +61,8 @@ namespace W8lessLabs.GraphAPI.Windows
 
         public async Task<bool> LogoutAsync()
         {
+            _logger?.Trace("LogoutAsync called");
+
             var msAccount = await _GetMicrosoftAccountAsync();
             if (msAccount is null)
                 return false;
@@ -65,6 +75,8 @@ namespace W8lessLabs.GraphAPI.Windows
 
         public async Task<bool> LogoutAsync(string accountId)
         {
+            _logger?.Trace("LogoutAsync called for accountId: [{0}]", accountId);
+
             var msAccount = await _GetMicrosoftAccountAsync(accountId);
             if (msAccount is null)
                 return false;
@@ -77,21 +89,30 @@ namespace W8lessLabs.GraphAPI.Windows
 
         public async Task<GraphTokenResult> GetTokenAsync(string accountId = null, bool forceRefresh = false)
         {
+            _logger?.Trace("GetTokenAsync called for accountId: [{0}] - force refresh: [{1}]", accountId, forceRefresh);
+
             IAccount msAccount = await _GetMicrosoftAccountAsync(accountId);
-            
-            AuthenticationResult authResult;
-            if (msAccount != null)
-                authResult = await _appClient.AcquireTokenSilentAsync(_authConfig.Scopes, msAccount, _Authority, forceRefresh).ConfigureAwait(false);
-            else
-                authResult = await _appClient.AcquireTokenAsync(_authConfig.Scopes).ConfigureAwait(false); // force an interactive login
 
-            if (authResult != null && !string.IsNullOrEmpty(authResult.AccessToken))
+            try
             {
-                IAccount authAccount = authResult.Account;
+                AuthenticationResult authResult;
+                if (msAccount != null)
+                    authResult = await _appClient.AcquireTokenSilentAsync(_authConfig.Scopes, msAccount, _Authority, forceRefresh).ConfigureAwait(false);
+                else
+                    authResult = await _appClient.AcquireTokenAsync(_authConfig.Scopes).ConfigureAwait(false); // force an interactive login
 
-                return new GraphTokenResult(true,
-                    authResult.AccessToken,
-                    authResult.ExpiresOn);
+                if (authResult != null && !string.IsNullOrEmpty(authResult.AccessToken))
+                {
+                    IAccount authAccount = authResult.Account;
+
+                    return new GraphTokenResult(true,
+                        authResult.AccessToken,
+                        authResult.ExpiresOn);
+                }
+            }
+            catch (MsalServiceException msalEx)
+            {
+                _logger?.Error("Error acquiring token for accountId: [{0}] - force refresh [{1}] - error message: [{2}]", accountId, forceRefresh, msalEx.Message);
             }
 
             return GraphTokenResult.Failed;

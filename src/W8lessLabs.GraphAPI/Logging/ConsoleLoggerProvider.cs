@@ -1,10 +1,10 @@
 ﻿namespace W8lessLabs.GraphAPI.Logging
 {
-    public class DebugLoggerProvider : ILoggerProvider
+    public class ConsoleLoggerProvider : ILoggerProvider
     {
         public ILogger GetLogger()
         {
-            return DebugLogger.Instance;
+            return ConsoleLogger.Instance;
         }
     }
 }

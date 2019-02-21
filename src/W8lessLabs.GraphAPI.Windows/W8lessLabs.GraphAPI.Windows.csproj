@@ -10,8 +10,9 @@
     <RepositoryUrl>https://github.com/jburman/W8lessLabs.GraphAPI</RepositoryUrl>
     <PackageLicenseUrl>https://github.com/jburman/W8lessLabs.GraphAPI/blob/master/LICENSE</PackageLicenseUrl>
     <Copyright>Copyright (c) 2019 Jeremy Burman</Copyright>
-    <PackageReleaseNotes>Refactored AuthService moved out of core GraphAPI package and into Windows package.</PackageReleaseNotes>
-    <Version>4.0.0</Version>
+    <PackageReleaseNotes>Add logging into AuthService.</PackageReleaseNotes>
+    <Version>4.0.1</Version>
+    <AssemblyVersion>4.0.1.0</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>
