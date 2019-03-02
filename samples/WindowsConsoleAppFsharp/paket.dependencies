@@ -1,0 +1,8 @@
+source https://api.nuget.org/v3/index.json
+storage: none
+
+nuget FSharp.Core 4.5.2 restriction: >= net472
+nuget Newtonsoft.Json
+nuget System.ValueTuple 4.4.0 restriction: >= net472
+nuget W8lessLabs.GraphAPI
+nuget W8lessLabs.GraphAPI.Windows
