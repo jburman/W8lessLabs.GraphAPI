@@ -8,7 +8,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{AE7EC5
 		paket.dependencies = paket.dependencies
 	EndProjectSection
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "WindowsConsoleAppFsharp", "WindowsConsoleAppFsharp\WindowsConsoleAppFsharp.fsproj", "{760535AC-18B7-4D36-A643-997F13EDC2EB}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "WindowsConsoleAppFSharp", "WindowsConsoleAppFsharp\WindowsConsoleAppFSharp.fsproj", "{760535AC-18B7-4D36-A643-997F13EDC2EB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

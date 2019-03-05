@@ -4,20 +4,10 @@ open W8lessLabs.GraphAPI.Logging
 open W8lessLabs.GraphAPI.Windows
 open Json
 
-type SkipToken =
-    | BeginToken
-    | Token of string
-    | EndToken
-
-type DeltaLink =
-    | BeginLink
-    | Link of string
-    | EndLink
-
 [<EntryPoint>]
 let main argv =
     // register an App at https://apps.dev.microsoft.com/ to get a ClientID (add the Native Application platform)
-    let clientId = "c6181d4f-036c-4004-9faf-fe5c3f3cc358"
+    let clientId = "... client ID here ..."
     let json = new JsonSerializer() :> IJsonSerializer
     let authConfig = new AuthConfig(clientId, [|
                         "https://graph.microsoft.com/user.read"; // specify desired Graph API permissions
@@ -73,6 +63,12 @@ Example 1 - GetDriveItems with PageSize 10\n\
         
         (*
             // An alternative approach (more imperative style). Just for comparison.
+
+            // Note: will have to define the following descriminated union
+            type SkipToken =
+                | BeginToken
+                | Token of string
+                | EndToken
 
             let skipTokenVal token =
                 match token with
