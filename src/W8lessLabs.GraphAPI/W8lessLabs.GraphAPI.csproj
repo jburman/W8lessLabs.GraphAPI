@@ -1,7 +1,6 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+﻿<Project Sdk="MSBuild.Sdk.Extras">
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>netstandard2.0;netstandard1.6;net462</TargetFrameworks>
     <Authors>Jeremy Burman</Authors>
     <Company>W8less Labs</Company>
     <Description>Provides simple APIs for accessing the Microsoft Graph API. Currently, supports reading/writing drive item metadata and permissions from OneDrive, as well as reading basic user profile information.</Description>
@@ -10,10 +9,22 @@
     <PackageProjectUrl>https://github.com/jburman/W8lessLabs.GraphAPI</PackageProjectUrl>
     <PackageLicenseUrl>https://github.com/jburman/W8lessLabs.GraphAPI/blob/master/LICENSE</PackageLicenseUrl>
     <Copyright>Copyright (c) 2019 Jeremy Burman</Copyright>
-    <Version>0.4.1</Version>
-    <PackageReleaseNotes>Replace DebugLogger with ConsoleLogger</PackageReleaseNotes>
-    <FileVersion>0.4.0.0</FileVersion>
-    <AssemblyVersion>0.4.1.0</AssemblyVersion>
+    <Version>0.4.3</Version>
+    <PackageReleaseNotes>Add multi-targeting</PackageReleaseNotes>
+    <FileVersion>0.4.3.0</FileVersion>
+    <AssemblyVersion>0.4.3.0</AssemblyVersion>
   </PropertyGroup>
+  
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
+      <PackageReference Include="System.ValueTuple" Version="4.5.0" />
+      <PackageReference Include="System.Net.Http" Version="4.3.4" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.6' ">
+    <PackageReference Include="System.ValueTuple" Version="4.5.0" />
+    <PackageReference Include="System.Net.Http" Version="4.3.4" />
+    <PackageReference Include="System.Reflection" Version="4.3.0" />
+    <PackageReference Include="System.Runtime.Serialization.Primitives" Version="4.3.0" />
+  </ItemGroup>
 
 </Project>

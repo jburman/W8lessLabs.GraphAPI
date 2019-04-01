@@ -20,10 +20,15 @@ namespace W8lessLabs.GraphAPI.Windows
 
             _logger = loggerProvider?.GetLogger();
 
+#if WINDOWS_APP_RUNTIME
+            _appClient = new PublicClientApplication(authConfig.ClientId,
+                _Authority);
+#else
             var tokenCacheService = new TokenCacheService("W8lessLabsGraphAPI");
             _appClient = new PublicClientApplication(authConfig.ClientId,
                 _Authority,
                 tokenCacheService.TokenCache);
+#endif
         }
 
         private async Task<IAccount> _GetMicrosoftAccountAsync(string accountId = null) =>

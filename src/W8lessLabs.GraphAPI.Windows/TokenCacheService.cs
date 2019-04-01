@@ -5,12 +5,13 @@ using System.Security.Cryptography;
 
 namespace W8lessLabs.GraphAPI.Windows
 {
+#if !WINDOWS_APP_RUNTIME
     internal class TokenCacheService
     {
         public TokenCacheService(string cacheName)
         {
             _fileLock = new object();
-            _cacheFilePath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), 
+            _cacheFilePath = Path.Combine(Path.GetDirectoryName(typeof(TokenCacheService).GetTypeInfo().Assembly.Location), 
                 cacheName + ".msalcache.bin");
 
             TokenCache = new TokenCache();
@@ -46,4 +47,5 @@ namespace W8lessLabs.GraphAPI.Windows
             }
         }
     }
+#endif
 }
