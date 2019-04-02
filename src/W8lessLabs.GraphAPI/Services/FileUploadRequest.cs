@@ -8,13 +8,15 @@ namespace W8lessLabs.GraphAPI
             string fileName,
             string description,
             int fileSize,
-            bool overwrite)
+            bool overwrite,
+            SpecialFolder? specialFolder = null)
         {
             FilePath = filePath ?? throw new ArgumentNullException(nameof(filePath));
             FileName = fileName ?? throw new ArgumentNullException(nameof(fileName));
             Description = description;
             FileSize = fileSize;
             Overwrite = overwrite;
+            SpecialFolder = specialFolder;
         }
 
         /// <summary>
@@ -25,6 +27,7 @@ namespace W8lessLabs.GraphAPI
         public string FileName { get; private set; }
         public string Description { get; private set; }
         public int FileSize { get; private set; }
+        public SpecialFolder? SpecialFolder { get; private set; }
         /// <summary>
         /// Set to True to overwrite an existing file, otherwise, the request will fail and a 
         /// different filename will need to be specified.

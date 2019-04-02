@@ -14,6 +14,7 @@ namespace W8lessLabs.GraphAPI
         internal const string GraphEndpoint_Me = GraphEndpoint+ "/me";
         internal const string GraphEndpoint_Drives = GraphEndpoint + "/drives";
         internal const string GraphEndpoint_DriveRoot = GraphEndpoint+ "/me/drive/root";
+        internal const string GraphEndpoint_DriveSpecial = GraphEndpoint + "/me/drive/special";
         internal const string GraphEndpoint_DriveItems = GraphEndpoint + "/me/drive/items";
         internal const string GraphEndpoint_DriveRootChildren = GraphEndpoint + "/me/drive/root/children";
         internal const string GraphEndpoint_Delta = GraphEndpoint + "/me/drive/root/delta";
@@ -81,36 +82,71 @@ namespace W8lessLabs.GraphAPI
             return (tokenSuccess, token);
         }
 
-        private string _GetRequestUrlForPath(string path)
+        private string _GetRequestUrlForPath(string path, SpecialFolder? specialFolder = null)
         {
-            if (string.IsNullOrEmpty(path) || path == "/")
-                return GraphEndpoint_DriveRoot;
+            string driveRoot = GraphEndpoint_DriveRoot;
+
+            if (specialFolder.HasValue)
+                driveRoot = GraphEndpoint_DriveSpecial + "/" + specialFolder.Value.ToFolderName();
+
+            if (!(string.IsNullOrEmpty(path) || path == "/"))
+                return driveRoot + ":" + Uri.EscapeUriString(path);
             else
-                return GraphEndpoint_DriveRoot + ":" + Uri.EscapeUriString(path);
+                return driveRoot;
         }
 
-        private string _GetRequestUrlForChildren(string path)
+        private string _GetRequestUrlForChildren(string path, SpecialFolder? specialFolder = null)
         {
             if (string.IsNullOrEmpty(path) || path == "/")
-                return GraphEndpoint_DriveRootChildren;
+            {
+                if (specialFolder.HasValue)
+                    return GraphEndpoint_DriveSpecial + "/" + specialFolder.Value.ToFolderName() + "/children";
+                else
+                    return GraphEndpoint_DriveRootChildren;
+            }
             else
-                return GraphEndpoint_DriveRoot + ":" + Uri.EscapeUriString(path) + ":/children";
+            {
+                if(specialFolder.HasValue)
+                    return GraphEndpoint_DriveSpecial + "/" + specialFolder.Value.ToFolderName() + ":" + Uri.EscapeUriString(path) + ":/children";
+                else
+                    return GraphEndpoint_DriveRoot + ":" + Uri.EscapeUriString(path) + ":/children";
+            }
         }
 
-        private string _GetRequestUrlForContent(string path)
+        private string _GetRequestUrlForContent(string path, SpecialFolder? specialFolder = null)
         {
             if (string.IsNullOrEmpty(path) || path == "/")
-                return GraphEndpoint_DriveRootChildren;
+            {
+                if (specialFolder.HasValue)
+                    return GraphEndpoint_DriveSpecial + "/" + specialFolder.Value.ToFolderName() + "/content";
+                else
+                    return GraphEndpoint_DriveRootChildren;
+            }
             else
-                return GraphEndpoint_DriveRoot + ":" + Uri.EscapeUriString(path) + ":/content";
+            {
+                if (specialFolder.HasValue)
+                    return GraphEndpoint_DriveSpecial + "/" + specialFolder.Value.ToFolderName() + ":" + Uri.EscapeUriString(path) + ":/content";
+                else
+                    return GraphEndpoint_DriveRoot + ":" + Uri.EscapeUriString(path) + ":/content";
+            }
+
+            //if (string.IsNullOrEmpty(path) || path == "/")
+            //    return GraphEndpoint_DriveRootChildren;
+            //else
+            //    return GraphEndpoint_DriveRoot + ":" + Uri.EscapeUriString(path) + ":/content";
         }
 
-        private string _GetRequestUrlForPermissions(string path)
+        private string _GetRequestUrlForPermissions(string path, SpecialFolder? specialFolder = null)
         {
+            string driveRoot = GraphEndpoint_DriveRoot;
+
+            if (specialFolder.HasValue)
+                driveRoot = GraphEndpoint_DriveSpecial + "/" + specialFolder.Value.ToFolderName();
+
             if (string.IsNullOrEmpty(path) || path == "/")
-                return GraphEndpoint_DriveRoot + "/permissions";
+                return driveRoot + "/permissions";
             else
-                return GraphEndpoint_DriveRoot + ":" + Uri.EscapeUriString(path) + ":/permissions";
+                return driveRoot + ":" + Uri.EscapeUriString(path) + ":/permissions";
         }
 
         private bool _TryGetRequestUrlForItemId(string driveItemId, out string requestUrl)
@@ -140,7 +176,7 @@ namespace W8lessLabs.GraphAPI
 
         private string _GetRequestUrlWithPaging(GetDriveItemsRequest request)
         {
-            string requestUrl = _GetRequestUrlForChildren(request?.Path);
+            string requestUrl = _GetRequestUrlForChildren(request?.Path, request?.SpecialFolder);
             int pageSize = Math.Max(request.PageSize, GetDriveItemsRequest.MinimumPageSize);
             requestUrl += "?$top=" + pageSize;
 
@@ -194,11 +230,11 @@ namespace W8lessLabs.GraphAPI
                 return null;
         }
 
-        public async Task<DriveItem> GetDriveItemAsync(string accountId, string itemPath)
+        public async Task<DriveItem> GetDriveItemAsync(string accountId, string itemPath, SpecialFolder? specialFolder = null)
         {
             if(!string.IsNullOrEmpty(itemPath))
             {
-                string requestUrl = _GetRequestUrlForPath(itemPath);
+                string requestUrl = _GetRequestUrlForPath(itemPath, specialFolder);
                 (bool tokenSuccess, string token) = await _TryGetTokenAsync(accountId).ConfigureAwait(false);
                 if (tokenSuccess)
                     using (_WithAuthHeader(token))
@@ -282,10 +318,10 @@ namespace W8lessLabs.GraphAPI
             return GraphEndpoint_Delta + "?" + DeltaTokenParam + Uri.EscapeDataString(deltaToken);
         }
 
-        public async Task<int> GetChildItemsCountAsync(string accountId, string path)
+        public async Task<int> GetChildItemsCountAsync(string accountId, string path, SpecialFolder? specialFolder = null)
         {
             int count = 0;
-            string requestUrl = _GetRequestUrlForPath(path);
+            string requestUrl = _GetRequestUrlForPath(path, specialFolder);
             requestUrl += "?expand=children(select=id)";
 
             (bool tokenSuccess, string token) = await _TryGetTokenAsync(accountId).ConfigureAwait(false);
@@ -301,9 +337,9 @@ namespace W8lessLabs.GraphAPI
             return count;
         }
 
-        public async Task<IEnumerable<Permission>> GetPermissionsAsync(string accountId, string path)
+        public async Task<IEnumerable<Permission>> GetPermissionsAsync(string accountId, string path, SpecialFolder? specialFolder = null)
         {
-            string requestUrl = _GetRequestUrlForPermissions(path);
+            string requestUrl = _GetRequestUrlForPermissions(path, specialFolder);
             (bool tokenSuccess, string token) = await _TryGetTokenAsync(accountId).ConfigureAwait(false);
             if (tokenSuccess)
             {
@@ -402,9 +438,9 @@ namespace W8lessLabs.GraphAPI
             return null;
         }
 
-        public async Task<DriveItem> CreateFolderAsync(string accountId, string path, string newFolderName)
+        public async Task<DriveItem> CreateFolderAsync(string accountId, string path, string newFolderName, SpecialFolder? specialFolder = null)
         {
-            string requestUrl = _GetRequestUrlForChildren(path);
+            string requestUrl = _GetRequestUrlForChildren(path, specialFolder);
             (bool tokenSuccess, string token) = await _TryGetTokenAsync(accountId).ConfigureAwait(false);
             if (tokenSuccess)
             {
@@ -415,7 +451,7 @@ namespace W8lessLabs.GraphAPI
                         Name = newFolderName,
                         Folder = new Folder()
                     };
-                    _UnwrapResponse(await _http.PostJsonAsync<DriveItem>(requestUrl, _json.Serialize(createFolder)).ConfigureAwait(false));
+                    return _UnwrapResponse(await _http.PostJsonAsync<DriveItem>(requestUrl, _json.Serialize(createFolder)).ConfigureAwait(false));
                 }
             }
             return null;
@@ -423,7 +459,7 @@ namespace W8lessLabs.GraphAPI
 
         private async Task<DriveItem> _UploadSmallFileAsync(string accountId, FileUploadRequest request, Stream fileContent)
         {
-            string requestUrl = GraphEndpoint_DriveRoot + ":" + Uri.EscapeUriString(request.GetFullFilePath()) + ":/content";
+            string requestUrl = _GetRequestUrlForContent(request.GetFullFilePath(), request.SpecialFolder);
 
             (bool tokenSuccess, string token) = await _TryGetTokenAsync(accountId).ConfigureAwait(false);
             if (tokenSuccess)
@@ -436,7 +472,12 @@ namespace W8lessLabs.GraphAPI
 
         public async Task<DriveItem> _UploadLargeFileAsync(string accountId, FileUploadRequest request, Stream fileContent)
         {
-            string createSessionUrl = GraphEndpoint_DriveRoot + ":" + Uri.EscapeUriString(request.GetFullFilePath()) + ":/createUploadSession";
+            string createSessionUrl = GraphEndpoint_DriveRoot;
+            if (request.SpecialFolder.HasValue)
+                createSessionUrl = GraphEndpoint_DriveSpecial + "/" + request.SpecialFolder.Value.ToFolderName();
+
+            createSessionUrl += ":" + Uri.EscapeUriString(request.GetFullFilePath()) + ":/createUploadSession";
+
             (bool tokenSuccess, string token) = await _TryGetTokenAsync(accountId).ConfigureAwait(false);
             if (tokenSuccess)
             {
@@ -481,9 +522,10 @@ namespace W8lessLabs.GraphAPI
             return await _UploadLargeFileAsync(accountId, request, fileContent).ConfigureAwait(false);
         }
 
-        public async Task<Stream> DownloadFileAsync(string accountId, string path, (int start, int end) range = default)
+        public async Task<Stream> DownloadFileAsync(string accountId, string path, (int start, int end) range = default, SpecialFolder? specialFolder = null)
         {
-            string requestUrl = GraphEndpoint_DriveRoot + ":" + Uri.EscapeUriString(path) + ":/content";
+            string requestUrl = _GetRequestUrlForContent(path, specialFolder);
+
             (bool tokenSuccess, string token) = await _TryGetTokenAsync(accountId).ConfigureAwait(false);
             if (tokenSuccess)
             {

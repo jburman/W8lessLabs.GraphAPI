@@ -9,10 +9,10 @@
     <PackageProjectUrl>https://github.com/jburman/W8lessLabs.GraphAPI</PackageProjectUrl>
     <PackageLicenseUrl>https://github.com/jburman/W8lessLabs.GraphAPI/blob/master/LICENSE</PackageLicenseUrl>
     <Copyright>Copyright (c) 2019 Jeremy Burman</Copyright>
-    <Version>0.4.3</Version>
-    <PackageReleaseNotes>Add multi-targeting</PackageReleaseNotes>
-    <FileVersion>0.4.3.0</FileVersion>
-    <AssemblyVersion>0.4.3.0</AssemblyVersion>
+    <Version>0.4.4</Version>
+    <PackageReleaseNotes>Add support for Special Folders</PackageReleaseNotes>
+    <FileVersion>0.4.4.0</FileVersion>
+    <AssemblyVersion>0.4.4.0</AssemblyVersion>
   </PropertyGroup>
   
   <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
