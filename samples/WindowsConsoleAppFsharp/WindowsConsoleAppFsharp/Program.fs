@@ -2,6 +2,7 @@
 open W8lessLabs.GraphAPI
 open W8lessLabs.GraphAPI.Logging
 open W8lessLabs.GraphAPI.Windows
+open Graph
 open Json
 
 [<EntryPoint>]
@@ -12,6 +13,7 @@ let main argv =
     let authConfig = new AuthConfig(clientId, [|
                         "https://graph.microsoft.com/user.read"; // specify desired Graph API permissions
                         "https://graph.microsoft.com/files.read"
+                        "https://graph.microsoft.com/files.readwrite.appfolder"
                     |]);
 
     use http = new HttpClient()
@@ -86,12 +88,16 @@ Example 1 - GetDriveItems with PageSize 10\n\
                         skipToken <- EndToken
         *)
 
+
+        
         // Example 2: get "delta" items
         // When the deltaLink argument is null (or not supplied) then it will return all items.
         // Otherwise, it will return any items that have changed since the deltaLink was retrieved.
         printfn "%s" "=========================\n\
 Example 2 - GetDriveItemsDelta\n\
 ========================="
+
+
 
         let getDeltaItems accountId (nextLink: string Option) =
             async { 
@@ -108,7 +114,19 @@ Example 2 - GetDriveItemsDelta\n\
                     yield! allDeltaItems (Some(response.NextLink))
             }
         allDeltaItems None |> Seq.collect (fun items -> items) |> Seq.iter (fun item -> printfn "%s/%s" item.ParentReference.Path item.Name)
+        
 
+        // Example 3: Get files/folders using a wrapper class
+        printfn "%s" "=========================\n\
+Example 3 - GraphFolders wrapper class\n\
+========================="
+        let folders = new GraphFolders(graphService, account.AccountId)
+        let rootFolder = folders.GetFolder("/")
+        let rootFiles = rootFolder.Files
+        rootFiles |> Seq.iter (fun file -> printfn "%s" file.Name)
+
+        let folders = rootFolder.Folders
+        folders |> Seq.iter (fun folder -> printfn "%s" folder.Path)
 
     } |> Async.RunSynchronously
     0

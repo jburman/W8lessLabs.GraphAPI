@@ -5,6 +5,7 @@
     <TargetFramework>net47</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Graph.fs" />
     <Compile Include="Json.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
